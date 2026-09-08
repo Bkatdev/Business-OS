@@ -3,94 +3,221 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0b1410">
 
     <title>{% block title %}Business OS{% endblock %}</title>
 
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='styles.css') }}"
-    >
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script defer src="{{ url_for('static', filename='app.js') }}"></script>
 </head>
 
 <body>
+<div class="app-shell">
 
-    <div class="app-shell">
-
-        <aside class="sidebar">
-            <div class="brand">
-                <div class="brand-mark">B</div>
-
-                <div>
-                    <div class="brand-name">Business OS</div>
-                    <div class="brand-subtitle">AI Growth Platform</div>
-                </div>
+    <aside class="sidebar" id="sidebar">
+        <div class="brand">
+            <div class="brand-mark">B</div>
+            <div class="brand-copy">
+                <strong>Business OS</strong>
+                <span>AI Growth Platform</span>
             </div>
+        </div>
 
-            <nav class="nav">
+        <nav class="nav">
+            <a href="{{ url_for('dashboard') }}"
+               class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
+                <span class="nav-glyph">⌂</span><span>Dashboard</span>
+            </a>
 
-                <a href="/" class="nav-item active">
-                    <span class="nav-icon">⌂</span>
-                    Dashboard
-                </a>
+            <a href="{{ url_for('prospects') }}"
+               class="nav-item {% if active_page == 'prospects' %}active{% endif %}">
+                <span class="nav-glyph">◎</span><span>Prospects</span>
+                {% if global_prospect_count %}
+                    <span class="nav-count">{{ global_prospect_count }}</span>
+                {% endif %}
+            </a>
 
-                <a href="#" class="nav-item">
-                    <span class="nav-icon">◎</span>
-                    Prospects
-                </a>
+            <a href="{{ url_for('audits') }}"
+               class="nav-item {% if active_page == 'audits' %}active{% endif %}">
+                <span class="nav-glyph">◇</span><span>Audits</span>
+            </a>
 
-                <a href="#" class="nav-item">
-                    <span class="nav-icon">◇</span>
-                    Audits
-                </a>
+            <a href="{{ url_for('agents') }}"
+               class="nav-item {% if active_page == 'agents' %}active{% endif %}">
+                <span class="nav-glyph">✦</span><span>Agents</span>
+            </a>
 
-                <a href="#" class="nav-item">
-                    <span class="nav-icon">✦</span>
-                    Agents
-                </a>
+            <a href="{{ url_for('approvals') }}"
+               class="nav-item {% if active_page == 'approvals' %}active{% endif %}">
+                <span class="nav-glyph">✓</span><span>Approvals</span>
+                {% if global_approval_count %}
+                    <span class="nav-count attention">{{ global_approval_count }}</span>
+                {% endif %}
+            </a>
 
-                <a href="#" class="nav-item">
-                    <span class="nav-icon">✓</span>
-                    Approvals
-                </a>
+            <a href="{{ url_for('clients') }}"
+               class="nav-item {% if active_page == 'clients' %}active{% endif %}">
+                <span class="nav-glyph">▣</span><span>Clients</span>
+            </a>
+        </nav>
 
-                <a href="#" class="nav-item">
-                    <span class="nav-icon">◫</span>
-                    Clients
-                </a>
-
-            </nav>
-
-            <div class="sidebar-footer">
+        <div class="sidebar-system">
+            <span class="system-label">SYSTEM</span>
+            <div class="system-row">
                 <span class="status-dot"></span>
-                System Online
+                <span>Local app</span>
+                <strong>Online</strong>
             </div>
-        </aside>
+        </div>
 
-        <main class="main-content">
+        <div class="sidebar-footer">
+            <div class="avatar">BK</div>
+            <div>
+                <strong>Business OS</strong>
+                <span>Development workspace</span>
+            </div>
+        </div>
+    </aside>
 
-            <header class="topbar">
-                <div>
-                    <p class="topbar-label">Workspace</p>
-                    <h1>{% block page_title %}Dashboard{% endblock %}</h1>
-                </div>
+    <main class="main-content">
 
-                <div class="topbar-actions">
-                    <button class="secondary-button">
-                        Import Prospects
-                    </button>
+        <header class="topbar">
+            <button class="mobile-menu" type="button" data-mobile-menu aria-label="Open navigation">☰</button>
 
-                    <button class="primary-button">
-                        + Add Prospect
-                    </button>
-                </div>
-            </header>
+            <div class="topbar-heading">
+                <span>{% block page_kicker %}Workspace{% endblock %}</span>
+                <h1>{% block page_title %}Business OS{% endblock %}</h1>
+            </div>
 
-            {% block content %}
-            {% endblock %}
+            <div class="topbar-actions">
+                {% block topbar_actions %}
+                <button class="button secondary" type="button" data-open-modal="import-modal">
+                    Import CSV
+                </button>
+                <button class="button primary" type="button" data-open-modal="add-modal">
+                    + Add Prospect
+                </button>
+                {% endblock %}
+            </div>
+        </header>
 
-        </main>
+        <div class="page-content">
 
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-stack">
+                        {% for category, message in messages %}
+                            <div class="flash {{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+
+    </main>
+</div>
+
+<div class="modal-backdrop" id="add-modal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <div>
+                <span class="eyebrow">NEW PROSPECT</span>
+                <h2>Add a business</h2>
+            </div>
+            <button class="icon-button" type="button" data-close-modal>×</button>
+        </div>
+
+        <form method="POST" action="{{ url_for('add_prospect') }}" class="form-grid">
+            <label>
+                Business name
+                <input name="name" required placeholder="ABC Tree Service">
+            </label>
+
+            <label>
+                City
+                <input name="city" required placeholder="East Brunswick">
+            </label>
+
+            <label>
+                Category
+                <input name="category" placeholder="Tree Care">
+            </label>
+
+            <label>
+                Reviews
+                <input name="reviews" type="number" min="0" value="0">
+            </label>
+
+            <label>
+                Rating
+                <input name="rating" type="number" min="0" max="5" step="0.1" value="0">
+            </label>
+
+            <label>
+                Website
+                <input name="website" placeholder="https://...">
+            </label>
+
+            <label>
+                Phone
+                <input name="phone" placeholder="(732) 555-0100">
+            </label>
+
+            <label>
+                Email
+                <input name="email" type="email" placeholder="owner@example.com">
+            </label>
+
+            <div class="checkbox-grid full-span">
+                <label class="check-row"><input type="checkbox" name="online_booking"> Online booking</label>
+                <label class="check-row"><input type="checkbox" name="emergency_service"> Emergency service</label>
+                <label class="check-row"><input type="checkbox" name="website_chat"> Website chat</label>
+                <label class="check-row"><input type="checkbox" name="estimate_form"> Estimate form</label>
+            </div>
+
+            <label class="full-span">
+                Notes
+                <textarea name="notes" rows="3" placeholder="Anything useful about this prospect..."></textarea>
+            </label>
+
+            <div class="modal-actions full-span">
+                <button type="button" class="button secondary" data-close-modal>Cancel</button>
+                <button type="submit" class="button primary">Add prospect</button>
+            </div>
+        </form>
     </div>
+</div>
 
+<div class="modal-backdrop" id="import-modal">
+    <div class="modal-card compact">
+        <div class="modal-header">
+            <div>
+                <span class="eyebrow">IMPORT</span>
+                <h2>Import prospects</h2>
+            </div>
+            <button class="icon-button" type="button" data-close-modal>×</button>
+        </div>
+
+        <p class="modal-copy">
+            Upload a CSV with columns such as name, city, category, reviews, rating,
+            website, phone, email, online_booking, emergency_service, website_chat,
+            estimate_form, status, and notes.
+        </p>
+
+        <form method="POST" action="{{ url_for('import_prospects') }}" enctype="multipart/form-data">
+            <label class="upload-box">
+                <input type="file" name="file" accept=".csv" required>
+                <span>Choose CSV file</span>
+            </label>
+
+            <div class="modal-actions">
+                <button type="button" class="button secondary" data-close-modal>Cancel</button>
+                <button type="submit" class="button primary">Import</button>
+            </div>
+        </form>
+    </div>
+</div>
 </body>
 </html>

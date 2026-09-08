@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Agents | Business OS{% endblock %}
+{% block page_title %}Agents{% endblock %}
+
+{% block topbar_actions %}{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <span class="eyebrow">AGENT CENTER</span>
+        <h2>Specialists, not one giant black box.</h2>
+        <p>Each future agent gets one clear job, explicit tools, and human approval where it matters.</p>
+    </div>
+</section>
+
+<section class="agent-grid">
+    {% for agent in agents %}
+        <article class="panel agent-card">
+            <div class="agent-icon">✦</div>
+            <div class="agent-title-row">
+                <h3>{{ agent.name }}</h3>
+                <span class="stage-pill">{{ agent.stage }}</span>
+            </div>
+            <p>{{ agent.purpose }}</p>
+
+            <div class="agent-status">
+                <span class="{{ 'status-dot' if agent.status == 'Local rules only' else 'dot-muted' }}"></span>
+                {{ agent.status }}
+            </div>
+
+            <button class="button secondary full" type="button" disabled>
+                Connect later
+            </button>
+        </article>
+    {% endfor %}
+</section>
+
+<section class="panel roadmap-panel">
+    <div class="panel-header">
+        <div>
+            <span class="eyebrow">ARCHITECTURE RULE</span>
+            <h3>LLM conversation. Deterministic facts and actions.</h3>
+        </div>
+    </div>
+    <p>
+        Agents should never invent prices, availability, warranties, certifications, safety guidance,
+        or client facts. Models can reason and draft; tools and databases own the truth.
+    </p>
+</section>
+{% endblock %}

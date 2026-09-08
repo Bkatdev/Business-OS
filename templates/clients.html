@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Clients | Business OS{% endblock %}
+{% block page_title %}Clients{% endblock %}
+
+{% block topbar_actions %}{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <span class="eyebrow">CUSTOMER OPERATIONS</span>
+        <h2>From prospect to active account.</h2>
+        <p>Businesses marked “Client” in the pipeline appear here automatically.</p>
+    </div>
+</section>
+
+{% if businesses %}
+<section class="client-grid">
+    {% for business in businesses %}
+        <article class="panel client-card">
+            <div class="business-cell">
+                <div class="business-avatar">{{ business.name[0] }}</div>
+                <div>
+                    <strong>{{ business.name }}</strong>
+                    <span>{{ business.city }} · {{ business.category }}</span>
+                </div>
+            </div>
+
+            <div class="client-meta">
+                <div><span>Opportunity</span><strong>{{ business.score }}/100</strong></div>
+                <div><span>Reviews</span><strong>{{ business.reviews }}</strong></div>
+            </div>
+
+            <a class="button secondary full" href="{{ url_for('business_detail', business_id=business.id) }}">
+                Open account
+            </a>
+        </article>
+    {% endfor %}
+</section>
+{% else %}
+<section class="panel">
+    <div class="empty-state">
+        <span>▣</span>
+        <h3>No clients yet</h3>
+        <p>When a prospect becomes a customer, change its status to “Client” and it will appear here.</p>
+        <a class="button primary" href="{{ url_for('prospects') }}">Open prospects</a>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

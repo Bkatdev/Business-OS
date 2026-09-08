@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Not Found | Business OS{% endblock %}
+{% block page_title %}Page not found{% endblock %}
+{% block topbar_actions %}{% endblock %}
+
+{% block content %}
+<section class="not-found">
+    <span>404</span>
+    <h2>That page does not exist.</h2>
+    <p>Nothing was deleted. The route simply could not be found.</p>
+    <a class="button primary" href="{{ url_for('dashboard') }}">Return to dashboard</a>
+</section>
+{% endblock %}

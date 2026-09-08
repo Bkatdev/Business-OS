@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Audits | Business OS{% endblock %}
+{% block page_title %}Audits{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <span class="eyebrow">WEBSITE AUDITOR</span>
+        <h2>See the gaps before you build the pitch.</h2>
+        <p>This page currently uses the business data already in our database. Automated live-site auditing comes next.</p>
+    </div>
+</section>
+
+<section class="audit-grid">
+    {% for business in businesses %}
+        <article class="panel audit-card">
+            <div class="audit-card-head">
+                <div class="business-avatar">{{ business.name[0] }}</div>
+                <div>
+                    <h3>{{ business.name }}</h3>
+                    <p>{{ business.city }} · {{ business.category }}</p>
+                </div>
+                <span class="score-pill {{ business.opportunity_level|lower }}">{{ business.score }}</span>
+            </div>
+
+            <div class="audit-bars">
+                <div><span>Online booking</span><strong class="{{ 'yes' if business.online_booking else 'no' }}">{{ 'Found' if business.online_booking else 'Missing' }}</strong></div>
+                <div><span>Website chat</span><strong class="{{ 'yes' if business.website_chat else 'no' }}">{{ 'Found' if business.website_chat else 'Missing' }}</strong></div>
+                <div><span>Estimate form</span><strong class="{{ 'yes' if business.estimate_form else 'no' }}">{{ 'Found' if business.estimate_form else 'Missing' }}</strong></div>
+                <div><span>Emergency service</span><strong class="{{ 'yes' if business.emergency_service else 'neutral' }}">{{ 'Yes' if business.emergency_service else 'No / unknown' }}</strong></div>
+            </div>
+
+            <a class="text-link" href="{{ url_for('business_detail', business_id=business.id) }}">Open full profile →</a>
+        </article>
+    {% endfor %}
+</section>
+{% endblock %}

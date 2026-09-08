@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}{{ business.name }} | Business OS{% endblock %}
+{% block page_kicker %}Prospect profile{% endblock %}
+{% block page_title %}{{ business.name }}{% endblock %}
+
+{% block topbar_actions %}
+<a class="button secondary" href="{{ url_for('prospects') }}">← Back to prospects</a>
+{% endblock %}
+
+{% block content %}
+<section class="profile-hero">
+    <div class="profile-main">
+        <div class="large-avatar">{{ business.name[0] }}</div>
+        <div>
+            <span class="eyebrow">{{ business.category }}</span>
+            <h2>{{ business.name }}</h2>
+            <p>{{ business.city }}{% if business.rating %} · ★ {{ business.rating }} · {{ business.reviews }} reviews{% endif %}</p>
+            <div class="profile-links">
+                {% if business.website %}<a href="{{ business.website }}" target="_blank" rel="noopener">Website ↗</a>{% endif %}
+                {% if business.phone %}<span>{{ business.phone }}</span>{% endif %}
+                {% if business.email %}<span>{{ business.email }}</span>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="score-card">
+        <span>Opportunity score</span>
+        <div><strong>{{ business.score }}</strong><small>/100</small></div>
+        <p class="{{ business.opportunity_level|lower }}">{{ business.opportunity_level }} opportunity</p>
+    </div>
+</section>
+
+<section class="detail-grid">
+    <article class="panel detail-panel">
+        <div class="panel-header">
+            <div>
+                <span class="eyebrow">PIPELINE</span>
+                <h3>Sales status</h3>
+            </div>
+        </div>
+
+        <form class="status-form" method="POST" action="{{ url_for('update_business_status', business_id=business.id) }}">
+            <select name="status">
+                {% for option in ['Not Contacted','Researching','Qualified','Contacted','Demo Scheduled','Proposal Sent','Client','Not a Fit'] %}
+                    <option value="{{ option }}" {% if business.status == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+            <button class="button primary" type="submit">Update</button>
+        </form>
+
+        <div class="info-list">
+            <div><span>Category</span><strong>{{ business.category }}</strong></div>
+            <div><span>Location</span><strong>{{ business.city }}</strong></div>
+            <div><span>Reviews</span><strong>{{ business.reviews }}</strong></div>
+            <div><span>Rating</span><strong>{% if business.rating %}{{ business.rating }} / 5{% else %}Unknown{% endif %}</strong></div>
+        </div>
+    </article>
+
+    <article class="panel detail-panel">
+        <div class="panel-header">
+            <div>
+                <span class="eyebrow">AUDIT SNAPSHOT</span>
+                <h3>Digital capability</h3>
+            </div>
+        </div>
+
+        <div class="capability-list">
+            <div><span>Online booking</span><strong class="{{ 'yes' if business.online_booking else 'no' }}">{{ 'Present' if business.online_booking else 'Missing' }}</strong></div>
+            <div><span>Emergency service</span><strong class="{{ 'yes' if business.emergency_service else 'neutral' }}">{{ 'Yes' if business.emergency_service else 'No / unknown' }}</strong></div>
+            <div><span>Website chat</span><strong class="{{ 'yes' if business.website_chat else 'no' }}">{{ 'Present' if business.website_chat else 'Missing' }}</strong></div>
+            <div><span>Estimate form</span><strong class="{{ 'yes' if business.estimate_form else 'no' }}">{{ 'Present' if business.estimate_form else 'Missing' }}</strong></div>
+        </div>
+    </article>
+</section>
+
+<section class="detail-grid">
+    <article class="panel detail-panel">
+        <div class="panel-header">
+            <div>
+                <span class="eyebrow">FINDINGS</span>
+                <h3>Opportunity analysis</h3>
+            </div>
+        </div>
+
+        <div class="insight-list">
+            {% for finding in business.findings %}
+                <div class="insight warning">
+                    <span>!</span>
+                    <p>{{ finding }}</p>
+                </div>
+            {% else %}
+                <div class="empty-inline">No gaps detected by the current scoring rules.</div>
+            {% endfor %}
+        </div>
+    </article>
+
+    <article class="panel detail-panel">
+        <div class="panel-header">
+            <div>
+                <span class="eyebrow">RECOMMENDATIONS</span>
+                <h3>What we could offer</h3>
+            </div>
+        </div>
+
+        <div class="insight-list">
+            {% for recommendation in business.recommendations %}
+                <div class="insight success">
+                    <span>✓</span>
+                    <p>{{ recommendation }}</p>
+                </div>
+            {% else %}
+                <div class="empty-inline">No recommendation generated yet.</div>
+            {% endfor %}
+        </div>
+    </article>
+</section>
+
+<section class="panel detail-panel notes-panel">
+    <div class="panel-header">
+        <div>
+            <span class="eyebrow">WORKSPACE NOTES</span>
+            <h3>Research and sales notes</h3>
+            <p>These save locally in the Business OS database.</p>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('update_business_notes', business_id=business.id) }}">
+        <textarea name="notes" rows="6" placeholder="Add research, owner context, outreach ideas, next steps...">{{ business.notes }}</textarea>
+        <div class="notes-actions">
+            <button class="button primary" type="submit">Save notes</button>
+        </div>
+    </form>
+</section>
+{% endblock %}

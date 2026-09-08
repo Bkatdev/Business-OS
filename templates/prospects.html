@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Prospects | Business OS{% endblock %}
+{% block page_title %}Prospects{% endblock %}
+
+{% block topbar_actions %}
+<a class="button secondary" href="{{ url_for('export_prospects') }}">Export CSV</a>
+<button class="button secondary" type="button" data-open-modal="import-modal">Import CSV</button>
+<button class="button primary" type="button" data-open-modal="add-modal">+ Add Prospect</button>
+{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <span class="eyebrow">PROSPECT DATABASE</span>
+        <h2>Research once. Work from one source of truth.</h2>
+        <p>Search, filter, score, and track every business in the pipeline.</p>
+    </div>
+</section>
+
+<section class="panel">
+    <form class="filter-bar" method="GET" action="{{ url_for('prospects') }}">
+        <div class="search-field">
+            <span>⌕</span>
+            <input name="q" value="{{ query }}" placeholder="Search name, city, or category...">
+        </div>
+
+        <select name="level">
+            <option value="">All opportunity levels</option>
+            <option value="High" {% if level == 'High' %}selected{% endif %}>High</option>
+            <option value="Medium" {% if level == 'Medium' %}selected{% endif %}>Medium</option>
+            <option value="Low" {% if level == 'Low' %}selected{% endif %}>Low</option>
+        </select>
+
+        <select name="status">
+            <option value="">All statuses</option>
+            {% for option in ['Not Contacted','Researching','Qualified','Contacted','Demo Scheduled','Proposal Sent','Client','Not a Fit'] %}
+                <option value="{{ option }}" {% if status == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+        </select>
+
+        <button class="button secondary" type="submit">Apply filters</button>
+
+        {% if query or level or status %}
+            <a class="text-link clear-link" href="{{ url_for('prospects') }}">Clear</a>
+        {% endif %}
+    </form>
+
+    {% if businesses %}
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Business</th>
+                        <th>Location</th>
+                        <th>Reviews</th>
+                        <th>Score</th>
+                        <th>Key gaps</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for business in businesses %}
+                    <tr>
+                        <td>
+                            <div class="business-cell">
+                                <div class="business-avatar">{{ business.name[0] }}</div>
+                                <div>
+                                    <strong>{{ business.name }}</strong>
+                                    <span>{{ business.category }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="muted">{{ business.city }}</td>
+                        <td>
+                            <div class="stacked-number">
+                                <strong>{{ business.reviews }}</strong>
+                                <span>{% if business.rating %}★ {{ business.rating }}{% else %}No rating{% endif %}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="score-pill {{ business.opportunity_level|lower }}">
+                                {{ business.score }} · {{ business.opportunity_level }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="tag-row">
+                                {% for finding in business.findings[:2] %}
+                                    <span class="tag">{{ finding }}</span>
+                                {% endfor %}
+                                {% if business.findings|length > 2 %}
+                                    <span class="tag-more">+{{ business.findings|length - 2 }}</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td><span class="status-pill">{{ business.status }}</span></td>
+                        <td>
+                            <a class="text-link" href="{{ url_for('business_detail', business_id=business.id) }}">
+                                View →
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <span>⌕</span>
+            <h3>No matching prospects</h3>
+            <p>Try clearing your filters or add a new business.</p>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}
