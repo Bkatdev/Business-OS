@@ -1,135 +1,751 @@
 {% extends "base.html" %}
 
-{% block title %}{{ business.name }} | Business OS{% endblock %}
-{% block page_kicker %}Prospect profile{% endblock %}
-{% block page_title %}{{ business.name }}{% endblock %}
-
-{% block topbar_actions %}
-<a class="button secondary" href="{{ url_for('prospects') }}">← Back to prospects</a>
+{% block title %}
+{{ business.name }} · Business OS
 {% endblock %}
 
+{% block heading %}
+Prospect Intelligence
+{% endblock %}
+
+
+{% block actions %}
+
+<a
+  class="btn secondary"
+  href="{{ url_for('prospects') }}"
+>
+  ← Prospects
+</a>
+
+<form
+  method="post"
+  action="{{ url_for('audit_one', bid=business.id) }}"
+>
+  <button
+    class="btn primary"
+    type="submit"
+  >
+    Run Website Audit
+  </button>
+</form>
+
+{% endblock %}
+
+
 {% block content %}
-<section class="profile-hero">
-    <div class="profile-main">
-        <div class="large-avatar">{{ business.name[0] }}</div>
-        <div>
-            <span class="eyebrow">{{ business.category }}</span>
-            <h2>{{ business.name }}</h2>
-            <p>{{ business.city }}{% if business.rating %} · ★ {{ business.rating }} · {{ business.reviews }} reviews{% endif %}</p>
-            <div class="profile-links">
-                {% if business.website %}<a href="{{ business.website }}" target="_blank" rel="noopener">Website ↗</a>{% endif %}
-                {% if business.phone %}<span>{{ business.phone }}</span>{% endif %}
-                {% if business.email %}<span>{{ business.email }}</span>{% endif %}
-            </div>
-        </div>
+
+
+<div class="detail-hero">
+
+  <div>
+
+    <span class="badge neutral">
+      {{ business.category }}
+    </span>
+
+    <h2>
+      {{ business.name }}
+    </h2>
+
+    <p>
+      {{ business.address or business.city }}
+    </p>
+
+
+    <div class="contact-row">
+
+      {% if business.phone %}
+
+        <span>
+          {{ business.phone }}
+        </span>
+
+      {% endif %}
+
+
+      {% if business.website %}
+
+        <a
+          href="{{ business.website }}"
+          target="_blank"
+          rel="noopener"
+        >
+          Open website ↗
+        </a>
+
+      {% endif %}
+
     </div>
 
-    <div class="score-card">
-        <span>Opportunity score</span>
-        <div><strong>{{ business.score }}</strong><small>/100</small></div>
-        <p class="{{ business.opportunity_level|lower }}">{{ business.opportunity_level }} opportunity</p>
+  </div>
+
+
+  <div class="opportunity-card">
+
+    {% if analysis.level == "Pending Audit" %}
+
+      <span>
+        Opportunity score
+      </span>
+
+      <strong>
+        —
+      </strong>
+
+      <small>
+        Audit required
+      </small>
+
+    {% else %}
+
+      <span>
+        Opportunity score
+      </span>
+
+      <strong>
+        {{ analysis.score }}
+      </strong>
+
+      <small>
+        {{ analysis.level }} opportunity
+      </small>
+
+    {% endif %}
+
+  </div>
+
+</div>
+
+
+
+<div class="detail-grid">
+
+
+  <div class="panel">
+
+    <div class="panel-head">
+
+      <div>
+
+        <span class="eyebrow">
+          AUDIT
+        </span>
+
+        <h3>
+          Website Intelligence
+        </h3>
+
+      </div>
+
+
+      <span class="badge audit-{{ business.audit_status }}">
+
+        {{ business.audit_status.replace("_", " ")|title }}
+
+      </span>
+
     </div>
-</section>
 
-<section class="detail-grid">
-    <article class="panel detail-panel">
-        <div class="panel-header">
-            <div>
-                <span class="eyebrow">PIPELINE</span>
-                <h3>Sales status</h3>
-            </div>
-        </div>
 
-        <form class="status-form" method="POST" action="{{ url_for('update_business_status', business_id=business.id) }}">
-            <select name="status">
-                {% for option in ['Not Contacted','Researching','Qualified','Contacted','Demo Scheduled','Proposal Sent','Client','Not a Fit'] %}
-                    <option value="{{ option }}" {% if business.status == option %}selected{% endif %}>{{ option }}</option>
-                {% endfor %}
-            </select>
-            <button class="button primary" type="submit">Update</button>
-        </form>
+    {% if business.audit_status == "completed" %}
 
-        <div class="info-list">
-            <div><span>Category</span><strong>{{ business.category }}</strong></div>
-            <div><span>Location</span><strong>{{ business.city }}</strong></div>
-            <div><span>Reviews</span><strong>{{ business.reviews }}</strong></div>
-            <div><span>Rating</span><strong>{% if business.rating %}{{ business.rating }} / 5{% else %}Unknown{% endif %}</strong></div>
-        </div>
-    </article>
 
-    <article class="panel detail-panel">
-        <div class="panel-header">
-            <div>
-                <span class="eyebrow">AUDIT SNAPSHOT</span>
-                <h3>Digital capability</h3>
-            </div>
-        </div>
+      <div class="feature-grid">
 
-        <div class="capability-list">
-            <div><span>Online booking</span><strong class="{{ 'yes' if business.online_booking else 'no' }}">{{ 'Present' if business.online_booking else 'Missing' }}</strong></div>
-            <div><span>Emergency service</span><strong class="{{ 'yes' if business.emergency_service else 'neutral' }}">{{ 'Yes' if business.emergency_service else 'No / unknown' }}</strong></div>
-            <div><span>Website chat</span><strong class="{{ 'yes' if business.website_chat else 'no' }}">{{ 'Present' if business.website_chat else 'Missing' }}</strong></div>
-            <div><span>Estimate form</span><strong class="{{ 'yes' if business.estimate_form else 'no' }}">{{ 'Present' if business.estimate_form else 'Missing' }}</strong></div>
-        </div>
-    </article>
-</section>
 
-<section class="detail-grid">
-    <article class="panel detail-panel">
-        <div class="panel-header">
-            <div>
-                <span class="eyebrow">FINDINGS</span>
-                <h3>Opportunity analysis</h3>
-            </div>
-        </div>
+        <div class="feature">
 
-        <div class="insight-list">
-            {% for finding in business.findings %}
-                <div class="insight warning">
-                    <span>!</span>
-                    <p>{{ finding }}</p>
-                </div>
+          <span>
+            Estimate offered
+          </span>
+
+          <strong>
+
+            {% if business.estimate_offered %}
+              Yes
             {% else %}
-                <div class="empty-inline">No gaps detected by the current scoring rules.</div>
-            {% endfor %}
-        </div>
-    </article>
+              Not detected
+            {% endif %}
 
-    <article class="panel detail-panel">
-        <div class="panel-header">
-            <div>
-                <span class="eyebrow">RECOMMENDATIONS</span>
-                <h3>What we could offer</h3>
-            </div>
+          </strong>
+
         </div>
 
-        <div class="insight-list">
-            {% for recommendation in business.recommendations %}
-                <div class="insight success">
-                    <span>✓</span>
-                    <p>{{ recommendation }}</p>
-                </div>
+
+        <div class="feature">
+
+          <span>
+            Online estimate form
+          </span>
+
+          <strong>
+
+            {% if business.estimate_form %}
+              Detected
             {% else %}
-                <div class="empty-inline">No recommendation generated yet.</div>
-            {% endfor %}
-        </div>
-    </article>
-</section>
+              Not detected
+            {% endif %}
 
-<section class="panel detail-panel notes-panel">
-    <div class="panel-header">
-        <div>
-            <span class="eyebrow">WORKSPACE NOTES</span>
-            <h3>Research and sales notes</h3>
-            <p>These save locally in the Business OS database.</p>
+          </strong>
+
         </div>
+
+
+        <div class="feature">
+
+          <span>
+            Scheduling mentioned
+          </span>
+
+          <strong>
+
+            {% if business.scheduling_mentioned %}
+              Yes
+            {% else %}
+              Not detected
+            {% endif %}
+
+          </strong>
+
+        </div>
+
+
+        <div class="feature">
+
+          <span>
+            Actual online booking
+          </span>
+
+          <strong>
+
+            {% if business.online_booking %}
+              Detected
+            {% else %}
+              Not detected
+            {% endif %}
+
+          </strong>
+
+        </div>
+
+
+        <div class="feature">
+
+          <span>
+            Website chat widget
+          </span>
+
+          <strong>
+
+            {% if business.website_chat %}
+              Detected
+            {% else %}
+              Not detected
+            {% endif %}
+
+          </strong>
+
+        </div>
+
+
+        <div class="feature">
+
+          <span>
+            Emergency service
+          </span>
+
+          <strong>
+
+            {% if business.emergency_service %}
+              Detected
+            {% else %}
+              Not detected
+            {% endif %}
+
+          </strong>
+
+        </div>
+
+      </div>
+
+
+      <div class="audit-meta">
+
+        <span>
+          {{ business.audit_pages_checked or 0 }}
+          pages checked
+        </span>
+
+
+        {% if business.audit_confidence %}
+
+          <span>
+            {{ business.audit_confidence|title }}
+            confidence
+          </span>
+
+        {% endif %}
+
+
+        {% if business.website_type %}
+
+          <span>
+
+            {{ business.website_type.replace("_", " ")|title }}
+
+            website
+
+          </span>
+
+        {% endif %}
+
+
+        {% if business.audited_at %}
+
+          <span>
+            {{ business.audited_at }}
+          </span>
+
+        {% endif %}
+
+      </div>
+
+
+      <p class="help">
+
+        “Not detected” means Business OS did not find
+        evidence in the public website content it inspected.
+
+        It does not guarantee that a JavaScript-only,
+        hidden, or blocked feature does not exist.
+
+      </p>
+
+
+    {% else %}
+
+
+      <div class="empty-state">
+
+        <h4>
+          Website not fully audited
+        </h4>
+
+        <p>
+
+          Run the Website Auditor before trusting
+          website-feature opportunity points.
+
+        </p>
+
+      </div>
+
+
+    {% endif %}
+
+  </div>
+
+
+
+  <div class="panel">
+
+
+    <div class="panel-head">
+
+      <div>
+
+        <span class="eyebrow">
+          OPPORTUNITY
+        </span>
+
+        <h3>
+          Why this prospect scores
+        </h3>
+
+      </div>
+
     </div>
 
-    <form method="POST" action="{{ url_for('update_business_notes', business_id=business.id) }}">
-        <textarea name="notes" rows="6" placeholder="Add research, owner context, outreach ideas, next steps...">{{ business.notes }}</textarea>
-        <div class="notes-actions">
-            <button class="button primary" type="submit">Save notes</button>
+
+    {% if analysis.reasons %}
+
+
+      <div class="reason-list">
+
+
+        {% for reason, points in analysis.reasons %}
+
+          <div>
+
+            <span>
+              {{ reason }}
+            </span>
+
+            <strong>
+              +{{ points }}
+            </strong>
+
+          </div>
+
+        {% endfor %}
+
+
+      </div>
+
+
+    {% elif analysis.level == "Pending Audit" %}
+
+
+      <p class="muted">
+
+        The website must be audited before
+        missing-feature opportunity signals are scored.
+
+      </p>
+
+
+    {% else %}
+
+
+      <p class="muted">
+
+        Business OS has not identified a strong
+        scored opportunity signal yet.
+
+      </p>
+
+
+    {% endif %}
+
+  </div>
+
+
+</div>
+
+
+
+{% if evidence %}
+
+
+<div class="panel">
+
+
+  <div class="panel-head">
+
+    <div>
+
+      <span class="eyebrow">
+        EVIDENCE
+      </span>
+
+      <h3>
+        What Business OS actually found
+      </h3>
+
+    </div>
+
+  </div>
+
+
+
+  {% if evidence.get("results") %}
+
+
+    {% for page in evidence.get("results", []) %}
+
+
+      <div class="evidence-page">
+
+
+        {% if page.get("url") %}
+
+          <a
+            href="{{ page.get('url') }}"
+            target="_blank"
+            rel="noopener"
+          >
+
+            {{ page.get("url") }}
+
+          </a>
+
+        {% endif %}
+
+
+
+        <div class="evidence-tags">
+
+
+          {% if page.get("evidence") %}
+
+
+            {% for key, values in page.get("evidence", {}).items() %}
+
+
+              {% if values %}
+
+                <div>
+
+                  <strong>
+
+                    {{ key.replace("_", " ")|title }}:
+
+                  </strong>
+
+                  {{ values|join(", ") }}
+
+                </div>
+
+              {% endif %}
+
+
+            {% endfor %}
+
+
+
+          {% else %}
+
+
+            {% if page.get("estimate_evidence") %}
+
+              <div>
+
+                <strong>
+                  Estimate evidence:
+                </strong>
+
+                {{ page.get("estimate_evidence")|join(", ") }}
+
+              </div>
+
+            {% endif %}
+
+
+            {% if page.get("booking_evidence") %}
+
+              <div>
+
+                <strong>
+                  Booking evidence:
+                </strong>
+
+                {{ page.get("booking_evidence")|join(", ") }}
+
+              </div>
+
+            {% endif %}
+
+
+            {% if page.get("chat_evidence") %}
+
+              <div>
+
+                <strong>
+                  Chat evidence:
+                </strong>
+
+                {{ page.get("chat_evidence")|join(", ") }}
+
+              </div>
+
+            {% endif %}
+
+
+            {% if page.get("emergency_evidence") %}
+
+              <div>
+
+                <strong>
+                  Emergency evidence:
+                </strong>
+
+                {{ page.get("emergency_evidence")|join(", ") }}
+
+              </div>
+
+            {% endif %}
+
+
+          {% endif %}
+
         </div>
+
+      </div>
+
+
+    {% endfor %}
+
+
+
+  {% elif evidence.get("error") %}
+
+
+    <div class="empty-state">
+
+      <h4>
+        Audit could not complete
+      </h4>
+
+      <p>
+        {{ evidence.get("error") }}
+      </p>
+
+    </div>
+
+
+
+  {% else %}
+
+
+    <div class="empty-state">
+
+      <h4>
+        Legacy audit data
+      </h4>
+
+      <p>
+
+        This prospect was audited before the newer
+        evidence system was added.
+
+        Run the Website Audit again to refresh it.
+
+      </p>
+
+    </div>
+
+
+  {% endif %}
+
+
+</div>
+
+
+{% endif %}
+
+
+
+<div class="detail-grid">
+
+
+  <div class="panel">
+
+
+    <div class="panel-head">
+
+      <div>
+
+        <span class="eyebrow">
+          PIPELINE
+        </span>
+
+        <h3>
+          Sales Status
+        </h3>
+
+      </div>
+
+    </div>
+
+
+    <form
+      method="post"
+      action="{{ url_for('update_status', bid=business.id) }}"
+      class="inline-form"
+    >
+
+
+      <select name="status">
+
+
+        {% for status in statuses %}
+
+
+          <option
+            value="{{ status }}"
+            {% if business.status == status %}
+              selected
+            {% endif %}
+          >
+
+            {{ status }}
+
+          </option>
+
+
+        {% endfor %}
+
+
+      </select>
+
+
+      <button
+        class="btn secondary"
+        type="submit"
+      >
+
+        Update
+
+      </button>
+
+
     </form>
-</section>
+
+  </div>
+
+
+
+  <div class="panel">
+
+
+    <div class="panel-head">
+
+      <div>
+
+        <span class="eyebrow">
+          NOTES
+        </span>
+
+        <h3>
+          Research & Sales Notes
+        </h3>
+
+      </div>
+
+    </div>
+
+
+    <form
+      method="post"
+      action="{{ url_for('update_notes', bid=business.id) }}"
+    >
+
+
+      <textarea
+        name="notes"
+        rows="6"
+        placeholder="What matters about this prospect?"
+      >{{ business.notes }}</textarea>
+
+
+      <button
+        class="btn secondary"
+        type="submit"
+      >
+
+        Save Notes
+
+      </button>
+
+
+    </form>
+
+
+  </div>
+
+
+</div>
+
+
 {% endblock %}

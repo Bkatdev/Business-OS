@@ -1,19 +1,10 @@
-# Local Business OS database
 business_os.db
 *.db
-
-# Python generated files
-__pycache__/
-*.pyc
-
-# Environment variables and API keys
 .env
 .env.*
-
-# Virtual environments
-venv/
+__pycache__/
+*.py[cod]
 .venv/
-
-# Operating system files
+venv/
 .DS_Store
 Thumbs.db

@@ -1,40 +1,29 @@
-# Business OS
+# Business OS v2
 
-A local Flask prototype for ranking service-business prospects, reviewing digital gaps,
-tracking pipeline status, storing notes, and preparing for future AI-agent workflows.
+This upgrade keeps your existing `.env` and `business_os.db` and migrates the database in place.
+
+## Adds
+- Prospect Finder in the web dashboard using Google Places API (New)
+- Google Place ID duplicate protection
+- Evidence-first Website Auditor
+- Estimate marketing language separated from actual estimate forms
+- Scheduling language separated from actual booking systems
+- Owned-site vs marketplace detection
+- Audit confidence, pages checked, and evidence on the prospect detail page
+- Opportunity scores that do not award missing-feature points before an audit completes
+
+## Important
+Do **not** delete your existing `.env` or `business_os.db`.
+
+## Install / update packages
+```powershell
+python -m pip install -r requirements.txt
+```
 
 ## Run
-
 ```powershell
 python app.py
 ```
+Then open `http://127.0.0.1:5000`.
 
-Then open:
-
-http://127.0.0.1:5000
-
-The app creates `business_os.db` automatically on first run.
-
-## Current v1 features
-
-- Dashboard
-- Persistent SQLite prospect database
-- Add prospect
-- CSV import/export
-- Search and filters
-- Opportunity scoring
-- Prospect detail pages
-- Pipeline status updates
-- Persistent notes
-- Audit overview
-- Agent center with truthful connection status
-- Approval queue
-- Client view
-- Responsive UI
-
-## Important
-
-The current Website Auditor uses stored business fields and scoring rules.
-It does not yet inspect live websites automatically.
-
-The Agent Center is architecture/UI only unless explicitly marked otherwise.
+The auditor analyzes public HTML. JavaScript-only widgets can be missed, so the UI says “Not detected” rather than claiming a feature definitely does not exist.

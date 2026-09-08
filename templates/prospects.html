@@ -1,116 +1,553 @@
 {% extends "base.html" %}
 
-{% block title %}Prospects | Business OS{% endblock %}
-{% block page_title %}Prospects{% endblock %}
-
-{% block topbar_actions %}
-<a class="button secondary" href="{{ url_for('export_prospects') }}">Export CSV</a>
-<button class="button secondary" type="button" data-open-modal="import-modal">Import CSV</button>
-<button class="button primary" type="button" data-open-modal="add-modal">+ Add Prospect</button>
+{% block title %}
+Prospects · Business OS
 {% endblock %}
 
-{% block content %}
-<section class="page-heading">
-    <div>
-        <span class="eyebrow">PROSPECT DATABASE</span>
-        <h2>Research once. Work from one source of truth.</h2>
-        <p>Search, filter, score, and track every business in the pipeline.</p>
-    </div>
-</section>
+{% block heading %}
+Prospects
+{% endblock %}
 
-<section class="panel">
-    <form class="filter-bar" method="GET" action="{{ url_for('prospects') }}">
-        <div class="search-field">
-            <span>⌕</span>
-            <input name="q" value="{{ query }}" placeholder="Search name, city, or category...">
+
+{% block actions %}
+
+<a
+    class="btn secondary"
+    href="{{ url_for('export_prospects') }}"
+>
+    Export CSV
+</a>
+
+{% endblock %}
+
+
+{% block content %}
+
+
+<div class="hero">
+
+    <span>PROSPECT FINDER</span>
+
+    <h2>
+        Find real local businesses.
+    </h2>
+
+    <p>
+        Search Google Places, save qualified businesses,
+        audit their websites, and identify automation opportunities.
+    </p>
+
+</div>
+
+
+
+<div class="panel">
+
+    <h3>
+        Find Businesses
+    </h3>
+
+    <form
+        method="post"
+        action="{{ url_for('discover_prospects') }}"
+    >
+
+        <div class="form-grid">
+
+            <div>
+
+                <label>
+                    Google search
+                </label>
+
+                <input
+                    type="text"
+                    name="query"
+                    value="tree service near East Brunswick, New Jersey"
+                    placeholder="tree service near East Brunswick, New Jersey"
+                    required
+                >
+
+            </div>
+
+
+            <div>
+
+                <label>
+                    Category
+                </label>
+
+                <input
+                    type="text"
+                    name="category"
+                    value="Tree Care"
+                    placeholder="Tree Care"
+                >
+
+            </div>
+
+
+            <div>
+
+                <label>
+                    Results
+                </label>
+
+                <select name="page_size">
+
+                    <option value="5">
+                        5
+                    </option>
+
+                    <option value="10" selected>
+                        10
+                    </option>
+
+                    <option value="15">
+                        15
+                    </option>
+
+                    <option value="20">
+                        20
+                    </option>
+
+                </select>
+
+            </div>
+
         </div>
 
-        <select name="level">
-            <option value="">All opportunity levels</option>
-            <option value="High" {% if level == 'High' %}selected{% endif %}>High</option>
-            <option value="Medium" {% if level == 'Medium' %}selected{% endif %}>Medium</option>
-            <option value="Low" {% if level == 'Low' %}selected{% endif %}>Low</option>
-        </select>
 
-        <select name="status">
-            <option value="">All statuses</option>
-            {% for option in ['Not Contacted','Researching','Qualified','Contacted','Demo Scheduled','Proposal Sent','Client','Not a Fit'] %}
-                <option value="{{ option }}" {% if status == option %}selected{% endif %}>{{ option }}</option>
-            {% endfor %}
-        </select>
+        <button
+            class="btn primary"
+            type="submit"
+        >
+            Find Prospects
+        </button>
 
-        <button class="button secondary" type="submit">Apply filters</button>
-
-        {% if query or level or status %}
-            <a class="text-link clear-link" href="{{ url_for('prospects') }}">Clear</a>
-        {% endif %}
     </form>
 
+</div>
+
+
+
+<div class="panel">
+
+    <h3>
+        Filter Prospects
+    </h3>
+
+
+    <form
+        method="get"
+        action="{{ url_for('prospects') }}"
+    >
+
+        <div class="form-grid">
+
+            <div>
+
+                <label>
+                    Search
+                </label>
+
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ q or '' }}"
+                    placeholder="Business, city, category..."
+                >
+
+            </div>
+
+
+            <div>
+
+                <label>
+                    Opportunity
+                </label>
+
+                <select name="level">
+
+                    <option value="">
+                        All
+                    </option>
+
+                    <option
+                        value="High"
+                        {% if level == "High" %}
+                            selected
+                        {% endif %}
+                    >
+                        High
+                    </option>
+
+                    <option
+                        value="Medium"
+                        {% if level == "Medium" %}
+                            selected
+                        {% endif %}
+                    >
+                        Medium
+                    </option>
+
+                    <option
+                        value="Low"
+                        {% if level == "Low" %}
+                            selected
+                        {% endif %}
+                    >
+                        Low
+                    </option>
+
+                    <option
+                        value="Pending Audit"
+                        {% if level == "Pending Audit" %}
+                            selected
+                        {% endif %}
+                    >
+                        Pending Audit
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div>
+
+                <label>
+                    Pipeline
+                </label>
+
+                <select name="status">
+
+                    <option value="">
+                        All
+                    </option>
+
+                    {% for pipeline_status in statuses %}
+
+                        <option
+                            value="{{ pipeline_status }}"
+                            {% if status == pipeline_status %}
+                                selected
+                            {% endif %}
+                        >
+                            {{ pipeline_status }}
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <div>
+
+                <label>
+                    Audit
+                </label>
+
+                <select name="audit">
+
+                    <option value="">
+                        All
+                    </option>
+
+                    <option
+                        value="not_audited"
+                        {% if audit == "not_audited" %}
+                            selected
+                        {% endif %}
+                    >
+                        Not Audited
+                    </option>
+
+                    <option
+                        value="completed"
+                        {% if audit == "completed" %}
+                            selected
+                        {% endif %}
+                    >
+                        Completed
+                    </option>
+
+                    <option
+                        value="failed"
+                        {% if audit == "failed" %}
+                            selected
+                        {% endif %}
+                    >
+                        Failed
+                    </option>
+
+                    <option
+                        value="no_website"
+                        {% if audit == "no_website" %}
+                            selected
+                        {% endif %}
+                    >
+                        No Website
+                    </option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+
+        <button
+            class="btn secondary"
+            type="submit"
+        >
+            Apply Filters
+        </button>
+
+        <a
+            class="btn secondary"
+            href="{{ url_for('prospects') }}"
+        >
+            Clear
+        </a>
+
+    </form>
+
+</div>
+
+
+
+<div class="panel">
+
+    <div class="panel-head">
+
+        <div>
+
+            <span class="eyebrow">
+                DATABASE
+            </span>
+
+            <h3>
+                Saved Prospects
+            </h3>
+
+        </div>
+
+        <span class="badge neutral">
+            {{ businesses|length }} businesses
+        </span>
+
+    </div>
+
+
     {% if businesses %}
+
         <div class="table-wrap">
-            <table class="data-table">
+
+            <table>
+
                 <thead>
+
                     <tr>
-                        <th>Business</th>
-                        <th>Location</th>
-                        <th>Reviews</th>
-                        <th>Score</th>
-                        <th>Key gaps</th>
-                        <th>Status</th>
-                        <th></th>
+
+                        <th>
+                            Business
+                        </th>
+
+                        <th>
+                            Location
+                        </th>
+
+                        <th>
+                            Rating
+                        </th>
+
+                        <th>
+                            Reviews
+                        </th>
+
+                        <th>
+                            Audit
+                        </th>
+
+                        <th>
+                            Opportunity
+                        </th>
+
+                        <th>
+                            Pipeline
+                        </th>
+
+                        <th>
+                        </th>
+
                     </tr>
+
                 </thead>
+
+
                 <tbody>
-                {% for business in businesses %}
-                    <tr>
-                        <td>
-                            <div class="business-cell">
-                                <div class="business-avatar">{{ business.name[0] }}</div>
-                                <div>
-                                    <strong>{{ business.name }}</strong>
-                                    <span>{{ business.category }}</span>
+
+                    {% for business in businesses %}
+
+                        <tr>
+
+                            <td>
+
+                                <strong>
+                                    {{ business.name }}
+                                </strong>
+
+                                <div class="muted">
+                                    {{ business.category }}
                                 </div>
-                            </div>
-                        </td>
-                        <td class="muted">{{ business.city }}</td>
-                        <td>
-                            <div class="stacked-number">
-                                <strong>{{ business.reviews }}</strong>
-                                <span>{% if business.rating %}★ {{ business.rating }}{% else %}No rating{% endif %}</span>
-                            </div>
-                        </td>
-                        <td>
-                            <span class="score-pill {{ business.opportunity_level|lower }}">
-                                {{ business.score }} · {{ business.opportunity_level }}
-                            </span>
-                        </td>
-                        <td>
-                            <div class="tag-row">
-                                {% for finding in business.findings[:2] %}
-                                    <span class="tag">{{ finding }}</span>
-                                {% endfor %}
-                                {% if business.findings|length > 2 %}
-                                    <span class="tag-more">+{{ business.findings|length - 2 }}</span>
+
+                            </td>
+
+
+                            <td>
+
+                                {{ business.city }}
+
+                            </td>
+
+
+                            <td>
+
+                                {% if business.rating %}
+
+                                    {{ "%.1f"|format(business.rating) }}
+
+                                {% else %}
+
+                                    —
+
                                 {% endif %}
-                            </div>
-                        </td>
-                        <td><span class="status-pill">{{ business.status }}</span></td>
-                        <td>
-                            <a class="text-link" href="{{ url_for('business_detail', business_id=business.id) }}">
-                                View →
-                            </a>
-                        </td>
-                    </tr>
-                {% endfor %}
+
+                            </td>
+
+
+                            <td>
+
+                                {{ business.reviews or 0 }}
+
+                            </td>
+
+
+                            <td>
+
+                                <span class="badge">
+
+                                    {{ business.audit_status.replace("_", " ")|title }}
+
+                                </span>
+
+                            </td>
+
+
+                            <td>
+
+                                {% if business.analysis.level == "Pending Audit" %}
+
+                                    <span class="badge neutral">
+                                        Pending Audit
+                                    </span>
+
+                                {% else %}
+
+                                    <strong>
+                                        {{ business.analysis.score }}
+                                    </strong>
+
+                                    <div class="muted">
+                                        {{ business.analysis.level }}
+                                    </div>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td>
+
+                                {{ business.status }}
+
+                            </td>
+
+
+                            <td>
+
+                                <a
+                                    class="btn secondary"
+                                    href="{{ url_for('business_detail', bid=business.id) }}"
+                                >
+                                    View
+                                </a>
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
                 </tbody>
+
             </table>
+
         </div>
+
+
     {% else %}
+
         <div class="empty-state">
-            <span>⌕</span>
-            <h3>No matching prospects</h3>
-            <p>Try clearing your filters or add a new business.</p>
+
+            <h4>
+                No prospects found
+            </h4>
+
+            <p>
+                Change your filters or use Find Businesses above.
+            </p>
+
         </div>
+
     {% endif %}
-</section>
+
+</div>
+
+
+
+<div class="panel">
+
+    <h3>
+        Import CSV
+    </h3>
+
+    <form
+        method="post"
+        action="{{ url_for('import_prospects') }}"
+        enctype="multipart/form-data"
+    >
+
+        <input
+            type="file"
+            name="file"
+            accept=".csv"
+            required
+        >
+
+        <button
+            class="btn secondary"
+            type="submit"
+        >
+            Import CSV
+        </button>
+
+    </form>
+
+</div>
+
+
 {% endblock %}
