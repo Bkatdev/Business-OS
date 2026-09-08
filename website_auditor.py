@@ -1,10 +1,6 @@
-business = {
-    "name": "Example Tree Service",
-    "website": "https://example.com",
-    "online_booking": False,
-    "website_chat": False,
-    "estimate_form": False
-}
+from businesses import businesses
+
+business = businesses[0]
 
 print("Website Audit:", business["name"])
 if business["online_booking"] == False:
