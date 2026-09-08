@@ -1,0 +1,19 @@
+Current Sprint:
+
+Set up development environment [ ] 
+
+
+
+Create GitHub account and first repo [ ]
+
+
+
+Scaffold Opportunity Finder Project [ ]
+
+
+
+Define Opportunity score v1 [ ]
+
+
+
+Build a basic website Auditor skeleton [ ]
