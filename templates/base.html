@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{% block title %}Business OS{% endblock %}</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='styles.css') }}"
+    >
+</head>
+
+<body>
+
+    <div class="app-shell">
+
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-mark">B</div>
+
+                <div>
+                    <div class="brand-name">Business OS</div>
+                    <div class="brand-subtitle">AI Growth Platform</div>
+                </div>
+            </div>
+
+            <nav class="nav">
+
+                <a href="/" class="nav-item active">
+                    <span class="nav-icon">⌂</span>
+                    Dashboard
+                </a>
+
+                <a href="#" class="nav-item">
+                    <span class="nav-icon">◎</span>
+                    Prospects
+                </a>
+
+                <a href="#" class="nav-item">
+                    <span class="nav-icon">◇</span>
+                    Audits
+                </a>
+
+                <a href="#" class="nav-item">
+                    <span class="nav-icon">✦</span>
+                    Agents
+                </a>
+
+                <a href="#" class="nav-item">
+                    <span class="nav-icon">✓</span>
+                    Approvals
+                </a>
+
+                <a href="#" class="nav-item">
+                    <span class="nav-icon">◫</span>
+                    Clients
+                </a>
+
+            </nav>
+
+            <div class="sidebar-footer">
+                <span class="status-dot"></span>
+                System Online
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+            <header class="topbar">
+                <div>
+                    <p class="topbar-label">Workspace</p>
+                    <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+                </div>
+
+                <div class="topbar-actions">
+                    <button class="secondary-button">
+                        Import Prospects
+                    </button>
+
+                    <button class="primary-button">
+                        + Add Prospect
+                    </button>
+                </div>
+            </header>
+
+            {% block content %}
+            {% endblock %}
+
+        </main>
+
+    </div>
+
+</body>
+</html>

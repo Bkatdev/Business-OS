@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, render_template
 from businesses import businesses
 
 app = Flask(__name__)
@@ -33,62 +33,23 @@ def analyze_business(business):
 
 @app.route("/")
 def home():
-    business_cards = ""
+    analyzed_businesses = []
 
     for business in businesses:
         score, findings = analyze_business(business)
 
-        findings_html = ""
+        analyzed_businesses.append({
+            "name": business["name"],
+            "city": business["city"],
+            "reviews": business["reviews"],
+            "score": score,
+            "findings": findings
+        })
 
-        for finding in findings:
-            findings_html += f"<li>{finding}</li>"
-
-        business_cards += f"""
-        <div style="
-            border: 1px solid #cccccc;
-            padding: 20px;
-            margin-bottom: 15px;
-            border-radius: 10px;
-        ">
-            <h2>{business["name"]}</h2>
-
-            <p><strong>Location:</strong> {business["city"]}</p>
-            <p><strong>Reviews:</strong> {business["reviews"]}</p>
-
-            <p>
-                <strong>Opportunity Score:</strong>
-                {score} / 100
-            </p>
-
-            <h3>Findings</h3>
-
-            <ul>
-                {findings_html}
-            </ul>
-        </div>
-        """
-
-    return f"""
-    <html>
-        <head>
-            <title>Business OS</title>
-        </head>
-
-        <body style="
-            font-family: Arial;
-            max-width: 900px;
-            margin: 40px auto;
-            padding: 20px;
-        ">
-
-            <h1>Business OS</h1>
-            <p>Local Business Opportunity Dashboard</p>
-
-            {business_cards}
-
-        </body>
-    </html>
-    """
+    return render_template(
+        "dashboard.html",
+        businesses=analyzed_businesses
+    )
 
 
 if __name__ == "__main__":

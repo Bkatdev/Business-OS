@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Business OS{% endblock %}
+
+{% block page_title %}Opportunity Dashboard{% endblock %}
+
+{% block content %}
+
+<section class="dashboard-intro">
+    <div>
+        <p class="eyebrow">COMMAND CENTER</p>
+        <h2>Find your next opportunity.</h2>
+        <p class="subtitle">
+            Identify high-value local businesses, uncover automation gaps,
+            and turn opportunities into customers.
+        </p>
+    </div>
+</section>
+
+<section class="stats-grid">
+
+    <div class="stat-card">
+        <p class="stat-label">Total Prospects</p>
+        <p class="stat-value">{{ businesses|length }}</p>
+        <p class="stat-detail">Businesses analyzed</p>
+    </div>
+
+    <div class="stat-card">
+        <p class="stat-label">High Opportunity</p>
+        <p class="stat-value">
+            {{ businesses|selectattr("score", "ge", 70)|list|length }}
+        </p>
+        <p class="stat-detail">Score of 70 or higher</p>
+    </div>
+
+    <div class="stat-card">
+        <p class="stat-label">Top Opportunity</p>
+        <p class="stat-value">
+            {{ businesses|map(attribute="score")|max }}
+        </p>
+        <p class="stat-detail">Highest current score</p>
+    </div>
+
+    <div class="stat-card">
+        <p class="stat-label">System Status</p>
+        <p class="stat-value stat-online">Online</p>
+        <p class="stat-detail">Analysis engine ready</p>
+    </div>
+
+</section>
+
+<section class="prospects-section">
+
+    <div class="section-header">
+        <div>
+            <p class="section-label">PIPELINE</p>
+            <h2>Prospect Intelligence</h2>
+        </div>
+
+        <div class="section-actions">
+            <input
+                class="search-input"
+                type="text"
+                placeholder="Search prospects..."
+            >
+
+            <button class="filter-button">
+                Filter
+            </button>
+        </div>
+    </div>
+
+    <div class="prospect-table-wrapper">
+
+        <table class="prospect-table">
+
+            <thead>
+                <tr>
+                    <th>Business</th>
+                    <th>Location</th>
+                    <th>Reviews</th>
+                    <th>Opportunity</th>
+                    <th>Key Findings</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for business in businesses %}
+
+                <tr>
+
+                    <td>
+                        <div class="business-name">
+                            {{ business.name }}
+                        </div>
+                    </td>
+
+                    <td class="muted-cell">
+                        {{ business.city }}
+                    </td>
+
+                    <td>
+                        {{ business.reviews }}
+                    </td>
+
+                    <td>
+                        {% if business.score >= 70 %}
+                            <span class="score-badge score-high">
+                                {{ business.score }}
+                            </span>
+                        {% elif business.score >= 40 %}
+                            <span class="score-badge score-medium">
+                                {{ business.score }}
+                            </span>
+                        {% else %}
+                            <span class="score-badge score-low">
+                                {{ business.score }}
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <div class="finding-tags">
+                            {% for finding in business.findings[:2] %}
+                                <span class="finding-tag">
+                                    {{ finding }}
+                                </span>
+                            {% endfor %}
+
+                            {% if business.findings|length > 2 %}
+                                <span class="more-findings">
+                                    +{{ business.findings|length - 2 }}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </td>
+
+                    <td>
+                        <button class="row-action">
+                            View →
+                        </button>
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+{% endblock %}
