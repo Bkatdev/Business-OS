@@ -775,6 +775,48 @@ def leads():
         leads=rows,
     )
 
+@app.route("/lead/<int:lead_id>")
+def lead_detail(lead_id):
+    conn = connect()
+
+    lead = conn.execute(
+        """
+        SELECT
+            leads.*,
+            businesses.name AS business_name
+        FROM leads
+        LEFT JOIN businesses
+            ON businesses.id = leads.business_id
+        WHERE leads.id = ?
+        """,
+        (lead_id,),
+    ).fetchone()
+
+    if lead is None:
+        conn.close()
+        return render_template("404.html"), 404
+
+    call = conn.execute(
+        """
+        SELECT *
+        FROM calls
+        WHERE lead_id = ?
+        ORDER BY id DESC
+        LIMIT 1
+        """,
+        (lead_id,),
+    ).fetchone()
+
+    conn.close()
+
+    return render_template(
+        "lead_detail.html",
+        lead=lead,
+        call=call,
+    )
+
+
+
 
 @app.route("/calls")
 def calls():

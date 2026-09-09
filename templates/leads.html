@@ -28,7 +28,11 @@
             <tbody>
                 {% for lead in leads %}
                     <tr>
-                        <td>{{ lead["caller_name"] or "Unknown" }}</td>
+                        <td>
+    <a href="{{ url_for('lead_detail', lead_id=lead['id']) }}">
+        {{ lead["caller_name"] or "Unknown" }}
+    </a>
+</td>
                         <td>{{ lead["phone"] or "—" }}</td>
                         <td>{{ lead["service_type"] or "—" }}</td>
                         <td>{{ lead["priority"] or "Normal" }}</td>

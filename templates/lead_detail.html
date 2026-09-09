@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <a href="{{ url_for('leads') }}">← Back to Leads</a>
+        <h1>{{ lead["caller_name"] or "Unknown Caller" }}</h1>
+        <p>
+            {{ lead["lead_type"] }}
+            •
+            {{ lead["source"] }}
+        </p>
+    </div>
+
+    <div>
+        <strong>{{ lead["priority"] }}</strong>
+    </div>
+</div>
+
+
+<div class="card">
+    <h2>Contact</h2>
+
+    <p>
+        <strong>Phone:</strong>
+        {{ lead["phone"] or "Not provided" }}
+    </p>
+
+    <p>
+        <strong>Address:</strong>
+        {{ lead["address"] or "Not provided" }}
+    </p>
+
+    <p>
+        <strong>Business:</strong>
+        {{ lead["business_name"] or "Demo / Unassigned" }}
+    </p>
+</div>
+
+
+<div class="card">
+    <h2>Service Request</h2>
+
+    <p>
+        <strong>Service:</strong>
+        {{ lead["service_type"] or "Not specified" }}
+    </p>
+
+    <p>
+        {{ lead["issue_description"] or "No description provided." }}
+    </p>
+</div>
+
+
+{% if lead["safety_flag"] %}
+<div class="card">
+    <h2>⚠ Safety Alert</h2>
+
+    <p>
+        <strong>{{ lead["safety_flag"] }}</strong>
+    </p>
+</div>
+{% endif %}
+
+
+<div class="card">
+    <h2>Appointment</h2>
+
+    <p>
+        <strong>Preferred time:</strong>
+        {{ lead["preferred_time"] or "No preference provided" }}
+    </p>
+
+    <p>
+        <strong>Status:</strong>
+        {{ lead["appointment_status"] }}
+    </p>
+</div>
+
+
+{% if call %}
+<div class="card">
+    <h2>Call Summary</h2>
+
+    <p>
+        {{ call["summary"] or "No summary available." }}
+    </p>
+
+    <p>
+        <strong>Duration:</strong>
+        {{ call["duration_seconds"] }} seconds
+    </p>
+
+    <p>
+        <strong>Call ID:</strong>
+        {{ call["retell_call_id"] or "Not available" }}
+    </p>
+</div>
+
+
+<div class="card">
+    <h2>Transcript</h2>
+
+    <p style="white-space: pre-wrap;">
+        {{ call["transcript"] or "No transcript available." }}
+    </p>
+</div>
+{% endif %}
+
+
+<div class="card">
+    <h2>Lead Status</h2>
+
+    <p>
+        <strong>{{ lead["status"] }}</strong>
+    </p>
+
+    <p>
+        Created {{ lead["created_at"] }}
+    </p>
+</div>
+
+{% endblock %}
