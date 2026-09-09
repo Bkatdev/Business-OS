@@ -627,30 +627,138 @@ def approval_action(
     )
 
 
+
 @app.route("/webhooks/retell", methods=["POST"])
 def retell_webhook():
     data = request.get_json(silent=True) or {}
 
-    call = data.get("call", data)
+    event = str(data.get("event", "") or "")
 
-    retell_call_id = str(call.get("call_id", "") or "")
-    caller_phone = str(call.get("from_number", "") or "")
-    duration_seconds = int(call.get("duration_seconds", 0) or 0)
-    transcript = str(call.get("transcript", "") or "")
-    summary = str(call.get("summary", "") or "")
+    # We only want the finished post-call analysis.
+    if event and event != "call_analyzed":
+        return {
+            "ok": True,
+            "ignored": True,
+            "event": event,
+        }, 200
 
-    caller_name = str(call.get("caller_name", "") or "")
-    address = str(call.get("address", "") or "")
-    service_type = str(call.get("service_type", "") or "")
-    issue_description = str(call.get("issue_description", "") or "")
-    preferred_time = str(call.get("preferred_time", "") or "")
+    call = data.get("call") or {}
 
-    priority = str(call.get("priority", "Normal") or "Normal")
-    lead_type = str(call.get("lead_type", "New Lead") or "New Lead")
-    safety_flag = str(call.get("safety_flag", "") or "")
+    if not isinstance(call, dict):
+        return {
+            "ok": False,
+            "error": "Invalid call payload",
+        }, 400
+
+    retell_call_id = str(
+        call.get("call_id", "") or ""
+    ).strip()
+
+    caller_phone = str(
+        call.get("from_number", "") or ""
+    ).strip()
+
+    transcript = str(
+        call.get("transcript", "") or ""
+    )
+
+    # Retell supplies duration in milliseconds.
+    duration_ms = call.get("duration_ms")
+
+    try:
+        duration_seconds = int(
+            int(duration_ms or 0) / 1000
+        )
+    except (TypeError, ValueError):
+        duration_seconds = 0
+
+    # Fallback in case duration_ms is missing.
+    if duration_seconds <= 0:
+        try:
+            start_timestamp = int(
+                call.get("start_timestamp") or 0
+            )
+            end_timestamp = int(
+                call.get("end_timestamp") or 0
+            )
+
+            if (
+                start_timestamp > 0
+                and end_timestamp > start_timestamp
+            ):
+                duration_seconds = int(
+                    (end_timestamp - start_timestamp)
+                    / 1000
+                )
+
+        except (TypeError, ValueError):
+            duration_seconds = 0
+
+    call_analysis = call.get("call_analysis") or {}
+
+    if not isinstance(call_analysis, dict):
+        call_analysis = {}
+
+    summary = str(
+        call_analysis.get("call_summary", "") or ""
+    )
+
+    custom = (
+        call_analysis.get("custom_analysis_data")
+        or {}
+    )
+
+    if not isinstance(custom, dict):
+        custom = {}
+
+    caller_name = str(
+        custom.get("caller_name", "") or ""
+    ).strip()
+
+    address = str(
+        custom.get("address", "") or ""
+    ).strip()
+
+    service_type = str(
+        custom.get("service_type", "") or ""
+    ).strip()
+
+    issue_description = str(
+        custom.get("issue_description", "") or ""
+    ).strip()
+
+    preferred_time = str(
+        custom.get("preferred_time", "") or ""
+    ).strip()
+
+    safety_flag = str(
+        custom.get("safety_flag", "") or ""
+    ).strip()
+
+    priority = str(
+        custom.get("priority", "Normal") or "Normal"
+    ).strip()
+
+    if priority not in ["Urgent", "Normal"]:
+        priority = "Normal"
+
+    appointment_confirmed = (
+        custom.get("appointment_confirmed") is True
+    )
+
+    if appointment_confirmed:
+        appointment_status = "Scheduled"
+    else:
+        appointment_status = "Not Scheduled"
+
+    # For now every inbound receptionist record is
+    # stored as a new lead. We can classify this more
+    # intelligently later.
+    lead_type = "New Lead"
 
     conn = connect()
 
+    # Retell can retry webhooks. Prevent duplicate calls.
     existing_call = None
 
     if retell_call_id:
@@ -703,7 +811,7 @@ def retell_webhook():
             priority,
             safety_flag,
             preferred_time,
-            "Not Scheduled",
+            appointment_status,
             "New",
             "AI Receptionist",
             retell_call_id,
@@ -750,6 +858,8 @@ def retell_webhook():
         "lead_id": lead_id,
         "call_id": call_id,
     }, 201
+
+
 @app.route("/leads")
 
 
