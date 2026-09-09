@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>Calls</h1>
+        <p>Inbound AI receptionist calls and transcripts.</p>
+    </div>
+</div>
+
+<div class="card">
+    {% if calls %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Caller</th>
+                    <th>Phone</th>
+                    <th>Business</th>
+                    <th>Duration</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for call in calls %}
+                    <tr>
+                        <td>{{ call["caller_name"] or "Unknown" }}</td>
+                        <td>{{ call["caller_phone"] or "—" }}</td>
+                        <td>{{ call["business_name"] or "—" }}</td>
+                        <td>{{ call["duration_seconds"] }} sec</td>
+                        <td>{{ call["call_status"] }}</td>
+                        <td>{{ call["created_at"] }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No calls yet.</p>
+    {% endif %}
+</div>
+
+{% endblock %}

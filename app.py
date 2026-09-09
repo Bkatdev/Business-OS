@@ -627,6 +627,184 @@ def approval_action(
     )
 
 
+@app.route("/webhooks/retell", methods=["POST"])
+def retell_webhook():
+    data = request.get_json(silent=True) or {}
+
+    call = data.get("call", data)
+
+    retell_call_id = str(call.get("call_id", "") or "")
+    caller_phone = str(call.get("from_number", "") or "")
+    duration_seconds = int(call.get("duration_seconds", 0) or 0)
+    transcript = str(call.get("transcript", "") or "")
+    summary = str(call.get("summary", "") or "")
+
+    caller_name = str(call.get("caller_name", "") or "")
+    address = str(call.get("address", "") or "")
+    service_type = str(call.get("service_type", "") or "")
+    issue_description = str(call.get("issue_description", "") or "")
+    preferred_time = str(call.get("preferred_time", "") or "")
+
+    priority = str(call.get("priority", "Normal") or "Normal")
+    lead_type = str(call.get("lead_type", "New Lead") or "New Lead")
+    safety_flag = str(call.get("safety_flag", "") or "")
+
+    conn = connect()
+
+    existing_call = None
+
+    if retell_call_id:
+        existing_call = conn.execute(
+            """
+            SELECT id
+            FROM calls
+            WHERE retell_call_id = ?
+            LIMIT 1
+            """,
+            (retell_call_id,),
+        ).fetchone()
+
+    if existing_call:
+        conn.close()
+
+        return {
+            "ok": True,
+            "duplicate": True,
+            "call_id": existing_call["id"],
+        }, 200
+
+    cursor = conn.execute(
+        """
+        INSERT INTO leads (
+            caller_name,
+            phone,
+            address,
+            service_type,
+            issue_description,
+            lead_type,
+            priority,
+            safety_flag,
+            preferred_time,
+            appointment_status,
+            status,
+            source,
+            retell_call_id,
+            created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            caller_name,
+            caller_phone,
+            address,
+            service_type,
+            issue_description,
+            lead_type,
+            priority,
+            safety_flag,
+            preferred_time,
+            "Not Scheduled",
+            "New",
+            "AI Receptionist",
+            retell_call_id,
+            now_iso(),
+        ),
+    )
+
+    lead_id = cursor.lastrowid
+
+    cursor = conn.execute(
+        """
+        INSERT INTO calls (
+            lead_id,
+            retell_call_id,
+            caller_phone,
+            duration_seconds,
+            summary,
+            transcript,
+            call_status,
+            created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            lead_id,
+            retell_call_id,
+            caller_phone,
+            duration_seconds,
+            summary,
+            transcript,
+            "Completed",
+            now_iso(),
+        ),
+    )
+
+    call_id = cursor.lastrowid
+
+    conn.commit()
+    conn.close()
+
+    return {
+        "ok": True,
+        "duplicate": False,
+        "lead_id": lead_id,
+        "call_id": call_id,
+    }, 201
+@app.route("/leads")
+
+
+def leads():
+    conn = connect()
+
+    rows = conn.execute(
+        """
+        SELECT
+            leads.*,
+            businesses.name AS business_name
+        FROM leads
+        LEFT JOIN businesses
+            ON businesses.id = leads.business_id
+        ORDER BY leads.id DESC
+        """
+    ).fetchall()
+
+    conn.close()
+
+    return render_template(
+        "leads.html",
+        leads=rows,
+    )
+
+
+@app.route("/calls")
+def calls():
+    conn = connect()
+
+    rows = conn.execute(
+        """
+        SELECT
+            calls.*,
+            leads.caller_name AS caller_name,
+            businesses.name AS business_name
+        FROM calls
+        LEFT JOIN leads
+            ON leads.id = calls.lead_id
+        LEFT JOIN businesses
+            ON businesses.id = calls.business_id
+        ORDER BY calls.id DESC
+        """
+    ).fetchall()
+
+    conn.close()
+
+    return render_template(
+        "calls.html",
+        calls=rows,
+    )
+
+
+
+
 @app.route("/clients")
 def clients():
     conn = connect()
