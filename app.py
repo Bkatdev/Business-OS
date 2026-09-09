@@ -658,6 +658,8 @@ def retell_webhook():
         call.get("from_number", "") or ""
     ).strip()
 
+    extracted_phone = ""
+
     transcript = str(
         call.get("transcript", "") or ""
     )
@@ -730,6 +732,13 @@ def retell_webhook():
     preferred_time = str(
         custom.get("preferred_time", "") or ""
     ).strip()
+
+    extracted_phone = str(
+        custom.get("caller_phone", "") or ""
+    ).strip()
+
+    if extracted_phone:
+        caller_phone = extracted_phone
 
     safety_flag = str(
         custom.get("safety_flag", "") or ""
