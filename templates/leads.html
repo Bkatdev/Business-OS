@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>Leads</h1>
+        <p>Inbound opportunities captured by Business OS.</p>
+    </div>
+</div>
+
+<div class="card">
+    {% if leads %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Service</th>
+                    <th>Priority</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Source</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for lead in leads %}
+                    <tr>
+                        <td>{{ lead["caller_name"] or "Unknown" }}</td>
+                        <td>{{ lead["phone"] or "—" }}</td>
+                        <td>{{ lead["service_type"] or "—" }}</td>
+                        <td>{{ lead["priority"] or "Normal" }}</td>
+                        <td>{{ lead["lead_type"] or "New Lead" }}</td>
+                        <td>{{ lead["status"] or "New" }}</td>
+                        <td>{{ lead["source"] or "—" }}</td>
+                        <td>{{ lead["created_at"] }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No leads yet.</p>
+    {% endif %}
+</div>
+
+{% endblock %}
