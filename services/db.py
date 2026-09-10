@@ -22,13 +22,21 @@ EXTRA_COLUMNS = {
 
 
 def connect():
-    con = sqlite3.connect(DB_PATH)
+    # SQLite is our local development database. These settings make writes
+    # safer under concurrent webhook/UI activity and enforce declared FKs.
+    con = sqlite3.connect(DB_PATH, timeout=10)
     con.row_factory = sqlite3.Row
+    con.execute("PRAGMA foreign_keys = ON")
+    con.execute("PRAGMA busy_timeout = 10000")
     return con
 
 
 def init_db():
     con = connect()
+    # WAL prevents ordinary readers from blocking a writer and is a safer
+    # local-development default for simultaneous UI + webhook traffic.
+    con.execute("PRAGMA journal_mode = WAL")
+    con.execute("PRAGMA synchronous = NORMAL")
 
     con.execute(
         """
@@ -454,6 +462,163 @@ def init_db():
         ON calls(retell_call_id)
         """
     )
+
+    # ---- v8: governance, lifecycle, and quarantine ---------------------
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS app_meta (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL DEFAULT '',
+            updated_at TEXT NOT NULL DEFAULT ''
+        )
+        """
+    )
+
+    business_existing = {row["name"] for row in con.execute("PRAGMA table_info(businesses)")}
+    business_governance_columns = {
+        "lifecycle_stage": "TEXT NOT NULL DEFAULT 'PROSPECT'",
+        "automation_enabled": "INTEGER NOT NULL DEFAULT 0",
+        "activated_at": "TEXT NOT NULL DEFAULT ''",
+        "lifecycle_updated_at": "TEXT NOT NULL DEFAULT ''",
+    }
+    for name, definition in business_governance_columns.items():
+        if name not in business_existing:
+            con.execute(f"ALTER TABLE businesses ADD COLUMN {name} {definition}")
+
+    entity_governance = {
+        "leads": {
+            "data_classification": "TEXT NOT NULL DEFAULT 'LEGACY'",
+            "quarantine_status": "TEXT NOT NULL DEFAULT 'Not Required'",
+            "quarantine_reason": "TEXT NOT NULL DEFAULT ''",
+            "source_agent_id": "TEXT NOT NULL DEFAULT ''",
+        },
+        "calls": {
+            "data_classification": "TEXT NOT NULL DEFAULT 'LEGACY'",
+            "quarantine_status": "TEXT NOT NULL DEFAULT 'Not Required'",
+            "quarantine_reason": "TEXT NOT NULL DEFAULT ''",
+            "source_agent_id": "TEXT NOT NULL DEFAULT ''",
+        },
+        "outbound_messages": {
+            "data_classification": "TEXT NOT NULL DEFAULT 'LEGACY'",
+            "quarantine_status": "TEXT NOT NULL DEFAULT 'Not Required'",
+            "quarantine_reason": "TEXT NOT NULL DEFAULT ''",
+        },
+        "automation_executions": {
+            "data_classification": "TEXT NOT NULL DEFAULT 'LEGACY'",
+            "quarantine_status": "TEXT NOT NULL DEFAULT 'Not Required'",
+            "quarantine_reason": "TEXT NOT NULL DEFAULT ''",
+        },
+    }
+    for table, columns in entity_governance.items():
+        existing_cols = {row["name"] for row in con.execute(f"PRAGMA table_info({table})")}
+        for name, definition in columns.items():
+            if name not in existing_cols:
+                con.execute(f"ALTER TABLE {table} ADD COLUMN {name} {definition}")
+
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS quarantine_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            entity_type TEXT NOT NULL,
+            entity_id INTEGER NOT NULL,
+            business_id INTEGER,
+            classification TEXT NOT NULL DEFAULT 'UNVERIFIED',
+            reason_code TEXT NOT NULL,
+            reason_detail TEXT NOT NULL DEFAULT '',
+            status TEXT NOT NULL DEFAULT 'Open',
+            created_at TEXT NOT NULL,
+            resolved_at TEXT NOT NULL DEFAULT '',
+            resolution_note TEXT NOT NULL DEFAULT '',
+            FOREIGN KEY (business_id) REFERENCES businesses(id)
+        )
+        """
+    )
+    con.execute(
+        "CREATE INDEX IF NOT EXISTS idx_quarantine_status ON quarantine_items(status, created_at)"
+    )
+    con.execute(
+        "CREATE INDEX IF NOT EXISTS idx_quarantine_entity ON quarantine_items(entity_type, entity_id)"
+    )
+    con.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_quarantine_open_reason
+        ON quarantine_items(entity_type, entity_id, reason_code)
+        WHERE status = 'Open'
+        """
+    )
+
+    # One receptionist agent must never route to two clients.
+    con.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_retell_agent_mapping
+        ON businesses(retell_agent_id)
+        WHERE TRIM(COALESCE(retell_agent_id, '')) != ''
+        """
+    )
+
+    migrated = con.execute(
+        "SELECT value FROM app_meta WHERE key = 'v8_governance_migrated'"
+    ).fetchone()
+    if migrated is None:
+        timestamp = datetime.now().isoformat(timespec="seconds")
+
+        # Preserve the old CRM status while introducing a stricter operational
+        # lifecycle. A legacy 'Client' is ONBOARDING, never silently ACTIVE.
+        con.execute(
+            """
+            UPDATE businesses
+            SET lifecycle_stage = CASE
+                WHEN status = 'Qualified' THEN 'QUALIFIED'
+                WHEN status = 'Demo' THEN 'DEMO'
+                WHEN status = 'Client' THEN 'ONBOARDING'
+                WHEN status = 'Lost' THEN 'CANCELLED'
+                ELSE 'PROSPECT'
+            END,
+            automation_enabled = 0,
+            lifecycle_updated_at = ?
+            """,
+            (timestamp,),
+        )
+
+        # Existing records predate governance metadata. Keep them truthful as
+        # LEGACY; never rewrite them as production data.
+        for table in ("leads", "calls", "outbound_messages", "automation_executions"):
+            con.execute(f"UPDATE {table} SET data_classification = 'LEGACY'")
+
+        # Any old record without a provable owner is quarantined instead of
+        # being guessed into a client account.
+        for table in ("leads", "calls", "outbound_messages", "automation_executions"):
+            con.execute(
+                f"""
+                UPDATE {table}
+                SET quarantine_status = 'Open',
+                    quarantine_reason = 'Legacy record has no provable client ownership.'
+                WHERE business_id IS NULL
+                """
+            )
+            rows = con.execute(
+                f"SELECT id, business_id FROM {table} WHERE business_id IS NULL"
+            ).fetchall()
+            entity_type = table[:-1] if table.endswith('s') else table
+            for row in rows:
+                con.execute(
+                    """
+                    INSERT OR IGNORE INTO quarantine_items
+                        (entity_type, entity_id, business_id, classification,
+                         reason_code, reason_detail, status, created_at)
+                    VALUES (?, ?, ?, 'LEGACY', 'legacy_unassigned',
+                            'Pre-governance record has no provable client ownership.', 'Open', ?)
+                    """,
+                    (entity_type, row["id"], row["business_id"], timestamp),
+                )
+
+        con.execute(
+            """
+            INSERT INTO app_meta(key, value, updated_at)
+            VALUES ('v8_governance_migrated', '1', ?)
+            """,
+            (timestamp,),
+        )
 
     con.commit()
     con.close()

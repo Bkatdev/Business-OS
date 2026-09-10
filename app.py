@@ -3,6 +3,10 @@ import csv
 import io
 import json
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from flask import (
     Flask,
     Response,
@@ -20,6 +24,8 @@ from services.website_auditor import audit_batch, audit_business_by_id
 from services.lead_triage import triage_lead
 from services.operations import appointment_state, end_from_duration, suggested_follow_up
 from services.automation_engine import execute_sms, validate_sms_message
+from services.governance import classify_inbound, quarantine
+from services.security import verify_retell_signature
 from services.system_health import build_health_report
 from services.reliability import (
     create_database_snapshot,
@@ -836,42 +842,48 @@ def _normalize_phone(value):
 
 
 def _resolve_retell_business(conn, agent_id):
+    """Resolve only an explicit agent mapping. Never guess from client count."""
     agent_id = str(agent_id or "").strip()
-
-    if agent_id:
-        mapped = conn.execute(
-            """
-            SELECT id
-            FROM businesses
-            WHERE status = 'Client'
-              AND retell_agent_id = ?
-            LIMIT 1
-            """,
-            (agent_id,),
-        ).fetchone()
-
-        if mapped:
-            return mapped["id"]
-
-    clients = conn.execute(
+    if not agent_id:
+        return None
+    mapped = conn.execute(
         """
         SELECT id
         FROM businesses
-        WHERE status = 'Client'
-        ORDER BY id DESC
-        LIMIT 2
-        """
-    ).fetchall()
-
-    if len(clients) == 1:
-        return clients[0]["id"]
-
-    return None
+        WHERE retell_agent_id = ?
+        LIMIT 1
+        """,
+        (agent_id,),
+    ).fetchone()
+    return mapped["id"] if mapped else None
 
 
 @app.route("/webhooks/retell", methods=["POST"])
 def retell_webhook():
-    data = request.get_json(silent=True) or {}
+    raw_body = request.get_data(cache=True)
+    signature = request.headers.get("X-Retell-Signature", "")
+    api_key = os.getenv("RETELL_API_KEY", "").strip()
+    allow_unsigned = os.getenv("BUSINESS_OS_ALLOW_UNSIGNED_RETELL", "0").strip().lower() in {"1", "true", "yes", "on"}
+
+    # Signed requests are always verified. Unsigned requests are accepted only
+    # when an operator deliberately enables the local-development bypass.
+    if signature:
+        verified, reason = verify_retell_signature(raw_body, signature, api_key)
+        if not verified:
+            record_system_event("Rejected Retell webhook", reason, severity="Warning", event_type="Security")
+            return {"ok": False, "error": "Webhook authentication failed"}, 401
+    elif not allow_unsigned:
+        record_system_event(
+            "Rejected unsigned Retell webhook",
+            "No X-Retell-Signature header was present and unsigned local bypass is disabled.",
+            severity="Warning", event_type="Security"
+        )
+        return {"ok": False, "error": "Webhook signature required"}, 401
+
+    try:
+        data = json.loads(raw_body.decode("utf-8")) if raw_body else {}
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return {"ok": False, "error": "Invalid JSON payload"}, 400
 
     event = str(data.get("event", "") or "")
 
@@ -1005,9 +1017,7 @@ def retell_webhook():
     else:
         appointment_status = "Not Scheduled"
 
-    # For now every inbound receptionist record is
-    # stored as a new lead. We can classify this more
-    # intelligently later.
+    # The CRM type is independent from governance classification.
     lead_type = "New Lead"
 
     conn = connect()
@@ -1039,6 +1049,11 @@ def retell_webhook():
         conn,
         retell_agent_id,
     )
+    governance = classify_inbound(conn, business_id)
+    data_classification = governance.classification
+    quarantine_open = data_classification == "UNVERIFIED" or business_id is None
+    quarantine_status = "Open" if quarantine_open else "Not Required"
+    quarantine_reason = governance.reason if quarantine_open else ""
 
     # A repeat call from the same phone number should attach to the
     # existing open opportunity instead of creating CRM clutter.
@@ -1051,11 +1066,13 @@ def retell_webhook():
             SELECT *
             FROM leads
             WHERE business_id = ?
+              AND data_classification = ?
+              AND quarantine_status != 'Open'
               AND status NOT IN ('Won', 'Lost')
             ORDER BY id DESC
             LIMIT 50
             """,
-            (business_id,),
+            (business_id, data_classification),
         ).fetchall()
 
         for candidate in candidates:
@@ -1085,6 +1102,8 @@ def retell_webhook():
                 safety_flag = CASE WHEN ? != '' THEN ? ELSE safety_flag END,
                 priority = ?,
                 retell_call_id = ?,
+                data_classification = ?,
+                source_agent_id = ?,
                 updated_at = ?
             WHERE id = ?
             """,
@@ -1099,6 +1118,8 @@ def retell_webhook():
                 safety_flag,
                 merged_priority,
                 retell_call_id,
+                data_classification,
+                retell_agent_id,
                 timestamp,
                 lead_id,
             ),
@@ -1140,9 +1161,13 @@ def retell_webhook():
                 source,
                 retell_call_id,
                 created_at,
-                updated_at
+                updated_at,
+                data_classification,
+                quarantine_status,
+                quarantine_reason,
+                source_agent_id
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 business_id,
@@ -1161,9 +1186,18 @@ def retell_webhook():
                 retell_call_id,
                 timestamp,
                 timestamp,
+                data_classification,
+                quarantine_status,
+                quarantine_reason,
+                retell_agent_id,
             ),
         )
         lead_id = cursor.lastrowid
+        if quarantine_open:
+            quarantine(
+                conn, "lead", lead_id, "unverified_retell_routing",
+                quarantine_reason, business_id=business_id, classification=data_classification
+            )
 
     cursor = conn.execute(
         """
@@ -1176,9 +1210,13 @@ def retell_webhook():
             summary,
             transcript,
             call_status,
-            created_at
+            created_at,
+            data_classification,
+            quarantine_status,
+            quarantine_reason,
+            source_agent_id
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             business_id,
@@ -1190,10 +1228,19 @@ def retell_webhook():
             transcript,
             "Completed",
             timestamp,
+            data_classification,
+            quarantine_status,
+            quarantine_reason,
+            retell_agent_id,
         ),
     )
 
     call_id = cursor.lastrowid
+    if quarantine_open:
+        quarantine(
+            conn, "call", call_id, "unverified_retell_routing",
+            quarantine_reason, business_id=business_id, classification=data_classification
+        )
 
     conn.commit()
     conn.close()
@@ -1722,14 +1769,23 @@ def update_client_retell_agent(bid):
         conn.close()
         return render_template("404.html"), 404
 
+    if retell_agent_id:
+        duplicate = conn.execute(
+            "SELECT id, name FROM businesses WHERE retell_agent_id = ? AND id != ? LIMIT 1",
+            (retell_agent_id, bid),
+        ).fetchone()
+        if duplicate:
+            conn.close()
+            flash(f"That Retell agent is already mapped to {duplicate['name']}. Mapping blocked.", "error")
+            return redirect(url_for("client_operations", bid=bid))
     conn.execute(
-        "UPDATE businesses SET retell_agent_id = ? WHERE id = ?",
-        (retell_agent_id, bid),
+        "UPDATE businesses SET retell_agent_id = ?, lifecycle_updated_at = ? WHERE id = ?",
+        (retell_agent_id, now_iso(), bid),
     )
     conn.commit()
     conn.close()
 
-    flash("Receptionist mapping updated.", "success")
+    flash("Receptionist mapping updated. Exact routing is enforced.", "success")
     return redirect(url_for("client_operations", bid=bid))
 
 
@@ -1949,18 +2005,31 @@ def queue_lead_message(lead_id):
         conn.close()
         flash("Assign this lead to a client before preparing customer communication.", "error")
         return redirect(url_for("lead_detail", lead_id=lead_id))
-    owner = conn.execute("SELECT id FROM businesses WHERE id = ? AND status = 'Client'", (lead["business_id"],)).fetchone()
-    if owner is None:
+    owner = conn.execute(
+        "SELECT id, lifecycle_stage FROM businesses WHERE id = ?", (lead["business_id"],)
+    ).fetchone()
+    if owner is None or (owner["lifecycle_stage"] or "").upper() in {"PROSPECT", "QUALIFIED", "PAUSED", "CANCELLED"}:
         conn.close()
-        flash("This lead is not attached to an active client. Messaging is locked.", "error")
+        flash("This lead is not attached to an automation-eligible client lifecycle. Messaging is locked.", "error")
+        return redirect(url_for("lead_detail", lead_id=lead_id))
+    if (lead["quarantine_status"] or "") == "Open":
+        conn.close()
+        flash("This lead is quarantined. Resolve ownership before preparing communication.", "error")
+        return redirect(url_for("lead_detail", lead_id=lead_id))
+    classification = (lead["data_classification"] or "LEGACY").upper()
+    if classification not in {"TEST", "DEMO", "PRODUCTION"}:
+        conn.close()
+        flash(f"{classification} data is not messaging-eligible.", "error")
         return redirect(url_for("lead_detail", lead_id=lead_id))
     timestamp = now_iso()
     conn.execute(
         """
-        INSERT INTO outbound_messages (business_id, lead_id, channel, recipient, body, status, automation_key, created_at)
-        VALUES (?, ?, 'SMS', ?, ?, 'Pending Approval', 'manual_follow_up', ?)
+        INSERT INTO outbound_messages
+            (business_id, lead_id, channel, recipient, body, status, automation_key,
+             created_at, data_classification, quarantine_status, quarantine_reason)
+        VALUES (?, ?, 'SMS', ?, ?, 'Pending Approval', 'manual_follow_up', ?, ?, 'Not Required', '')
         """,
-        (lead["business_id"], lead_id, lead["phone"], body, timestamp),
+        (lead["business_id"], lead_id, lead["phone"], body, timestamp, classification),
     )
     conn.execute(
         """

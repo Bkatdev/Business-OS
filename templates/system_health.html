@@ -22,9 +22,9 @@
 
 <div class="health-metrics reliability-metrics">
  <div><span>Database recovery</span><strong>{{ 'Ready' if reliability.backup_exists else 'Needs snapshot' }}</strong><small>{{ reliability.last_snapshot.created_at if reliability.last_snapshot else 'No local snapshot recorded yet' }}</small></div>
- <div><span>Unassigned leads</span><strong>{{ report.unassigned_leads }}</strong><small>Never eligible for customer automation</small></div>
+ <div><span>Quarantined</span><strong>{{ report.open_quarantine }}</strong><small>Isolated from production automation</small></div>
  <div><span>Failed messages</span><strong>{{ report.failed_messages }}</strong><small>Operator intervention required</small></div>
- <div><span>Client mappings</span><strong>{{ report.mapped_clients }}/{{ report.clients }}</strong><small>Receptionist routing coverage</small></div>
+ <div><span>Active routing</span><strong>{{ report.mapped_clients }}/{{ report.clients }}</strong><small>Exact Retell mapping for ACTIVE clients</small></div>
 </div>
 
 <div class="reliability-grid">
@@ -41,6 +41,17 @@
       {% else %}
         <div class="empty-runway"><strong>No self-test run yet.</strong><span>Run the full self-test before a demo, release, or live-provider change.</span></div>
       {% endif %}
+    </section>
+
+    <section class="panel reliability-section section-gap governance-section">
+      <div class="ops-section-title"><div><span class="section-kicker">DATA GOVERNANCE</span><h3>Quarantine, don't guess</h3><p>Ambiguous historical, test, or unverified records remain visible but cannot become production actions.</p></div><span class="count-bubble">{{ reliability.open_quarantine }}</span></div>
+      {% if reliability.quarantine %}
+      <div class="quarantine-list">
+        {% for item in reliability.quarantine %}
+        <div class="quarantine-row"><span class="quarantine-badge">ISOLATED</span><div><strong>{{ item.entity_type|title }} #{{ item.entity_id }} · {{ item.classification }}</strong><p>{{ item.reason_detail }}</p></div><small>{{ item.created_at }}</small></div>
+        {% endfor %}
+      </div>
+      {% else %}<div class="empty-runway"><strong>No open quarantine items.</strong><span>Business OS has no ambiguous records waiting in isolation.</span></div>{% endif %}
     </section>
 
     <section class="panel reliability-section section-gap">
@@ -68,7 +79,8 @@
     <section class="control-panel section-gap operator-contract">
       <span class="section-kicker">LOW-MAINTENANCE CONTRACT</span><h3>What should wake you up?</h3>
       <div class="safety-row"><span>Normal leads + calls</span><strong>Leave alone</strong></div>
-      <div class="safety-row"><span>Unknown client ownership</span><strong>Auto-block</strong></div>
+      <div class="safety-row"><span>Unknown client ownership</span><strong>Quarantine + block</strong></div>
+      <div class="safety-row"><span>Legacy / unverified data</span><strong>Never promote silently</strong></div>
       <div class="safety-row"><span>Recipient mismatch</span><strong>Auto-block</strong></div>
       <div class="safety-row"><span>Database corruption</span><strong class="status-off">Stop + recover</strong></div>
       <div class="safety-row"><span>Live provider failures</span><strong class="status-off">Escalate</strong></div>
