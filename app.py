@@ -18,6 +18,7 @@ from services.scoring import opportunity_analysis
 from services.website_auditor import audit_batch, audit_business_by_id
 from services.lead_triage import triage_lead
 from services.operations import appointment_state, end_from_duration, suggested_follow_up
+from services.automation_engine import execute_sms
 
 app = Flask(__name__)
 app.secret_key = "business-os-local-v2"
@@ -1753,19 +1754,48 @@ def automation_center():
         ORDER BY outbound_messages.id DESC
         """
     ).fetchall()
+    ready = conn.execute(
+        """
+        SELECT outbound_messages.*, leads.caller_name, businesses.name AS business_name
+        FROM outbound_messages
+        LEFT JOIN leads ON leads.id = outbound_messages.lead_id
+        LEFT JOIN businesses ON businesses.id = outbound_messages.business_id
+        WHERE outbound_messages.status IN ('Approved', 'Failed')
+        ORDER BY outbound_messages.id DESC
+        """
+    ).fetchall()
     recent = conn.execute(
         """
         SELECT outbound_messages.*, leads.caller_name, businesses.name AS business_name
         FROM outbound_messages
         LEFT JOIN leads ON leads.id = outbound_messages.lead_id
         LEFT JOIN businesses ON businesses.id = outbound_messages.business_id
-        WHERE outbound_messages.status != 'Pending Approval'
+        WHERE outbound_messages.status NOT IN ('Pending Approval', 'Approved', 'Failed')
         ORDER BY outbound_messages.id DESC
         LIMIT 20
         """
     ).fetchall()
+    executions = conn.execute(
+        """
+        SELECT automation_executions.*, leads.caller_name, businesses.name AS business_name
+        FROM automation_executions
+        LEFT JOIN leads ON leads.id = automation_executions.lead_id
+        LEFT JOIN businesses ON businesses.id = automation_executions.business_id
+        ORDER BY automation_executions.id DESC
+        LIMIT 30
+        """
+    ).fetchall()
+    stats = {
+        "pending": len(pending),
+        "ready": len(ready),
+        "successful": sum(1 for row in executions if row["status"] == "Success"),
+        "blocked": sum(1 for row in executions if row["status"] == "Blocked"),
+    }
     conn.close()
-    return render_template("automation.html", pending=pending, recent=recent)
+    return render_template(
+        "automation.html", pending=pending, ready=ready, recent=recent,
+        executions=executions, stats=stats, execution_mode="Simulation"
+    )
 
 
 @app.route("/lead/<int:lead_id>/appointment", methods=["POST"])
@@ -1909,6 +1939,18 @@ def approve_message(message_id):
     conn.commit()
     conn.close()
     flash("Message approved. It is staged, not sent yet.", "success")
+    return redirect(request.referrer or url_for("automation_center"))
+
+
+@app.route("/message/<int:message_id>/execute", methods=["POST"])
+def execute_message(message_id):
+    conn = connect()
+    result = execute_sms(conn, message_id, mode="simulation")
+    conn.close()
+    if result.ok:
+        flash("Simulation passed. No customer was contacted.", "success")
+    else:
+        flash(result.detail, "error")
     return redirect(request.referrer or url_for("automation_center"))
 
 

@@ -314,6 +314,49 @@ def init_db():
         """
     )
 
+    message_existing = {
+        row["name"]
+        for row in con.execute("PRAGMA table_info(outbound_messages)")
+    }
+    message_extra_columns = {
+        "provider": "TEXT NOT NULL DEFAULT ''",
+        "provider_message_id": "TEXT NOT NULL DEFAULT ''",
+        "send_attempts": "INTEGER NOT NULL DEFAULT 0",
+        "last_attempt_at": "TEXT NOT NULL DEFAULT ''",
+        "delivered_at": "TEXT NOT NULL DEFAULT ''",
+        "scheduled_for": "TEXT NOT NULL DEFAULT ''",
+    }
+    for name, definition in message_extra_columns.items():
+        if name not in message_existing:
+            con.execute(f"ALTER TABLE outbound_messages ADD COLUMN {name} {definition}")
+
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS automation_executions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            message_id INTEGER,
+            lead_id INTEGER,
+            business_id INTEGER,
+            channel TEXT NOT NULL DEFAULT 'SMS',
+            mode TEXT NOT NULL DEFAULT 'simulation',
+            status TEXT NOT NULL,
+            detail TEXT NOT NULL DEFAULT '',
+            provider TEXT NOT NULL DEFAULT '',
+            provider_message_id TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (message_id) REFERENCES outbound_messages(id),
+            FOREIGN KEY (lead_id) REFERENCES leads(id),
+            FOREIGN KEY (business_id) REFERENCES businesses(id)
+        )
+        """
+    )
+    con.execute(
+        "CREATE INDEX IF NOT EXISTS idx_automation_executions_message ON automation_executions(message_id, created_at)"
+    )
+    con.execute(
+        "CREATE INDEX IF NOT EXISTS idx_automation_executions_status ON automation_executions(status, created_at)"
+    )
+
     existing = {
         row["name"]
         for row in con.execute("PRAGMA table_info(businesses)")
