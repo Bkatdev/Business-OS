@@ -33,6 +33,8 @@ from services.front_office_intelligence import (
     ensure_front_office_schema, lead_intelligence, link_lead_service,
     save_intake_answer, unified_timeline, build_front_office_queue,
 )
+from services.operator_search import search_operator_records
+from services.customer_continuity import customer_continuity
 from services.system_health import build_health_report
 from services.control_plane import ensure_control_plane_schema, control_plane_overview, command_center_summary, review_improvement, ledger_event
 from services.reliability import (
@@ -1268,6 +1270,21 @@ def retell_webhook():
     }, 201
 
 
+@app.route("/search")
+def global_search():
+    query = request.args.get("q", "")
+    raw_business = request.args.get("business_id", "").strip()
+    business_id = int(raw_business) if raw_business.isdigit() else None
+    conn = connect()
+    results = search_operator_records(conn, query, business_id=business_id)
+    conn.close()
+    return render_template(
+        "search_results.html",
+        search=results,
+        business_id=business_id,
+    )
+
+
 @app.route("/leads")
 
 
@@ -1368,6 +1385,7 @@ def lead_detail(lead_id):
 
     intelligence = lead_intelligence(conn, lead_id)
     timeline = unified_timeline(conn, lead_id)
+    continuity = customer_continuity(conn, lead_id)
     configured_services = []
     if lead["business_id"]:
         configured_services = conn.execute(
@@ -1397,6 +1415,7 @@ def lead_detail(lead_id):
         suggested_message=suggested_follow_up(lead),
         intelligence=intelligence,
         unified_timeline=timeline,
+        customer_continuity=continuity,
         configured_services=configured_services,
     )
 

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Search · Business OS{% endblock %}
+{% block heading %}Search{% endblock %}
+{% block content %}
+<div class="v105-search-page">
+    <div class="panel v105-search-hero">
+        <span class="section-kicker">OPERATOR SEARCH</span>
+        <h2>Find the record. Keep the context.</h2>
+        <p>Search real Business OS records across clients, leads, calls, appointments, and messages. Search is read-only and never merges customer records.</p>
+        <form method="GET" action="{{ url_for('global_search') }}" class="v105-search-form v105-search-form-large">
+            <input name="q" value="{{ search.query }}" placeholder="Name, phone, service, address, client..." autocomplete="off" autofocus>
+            <button class="btn" type="submit">Search</button>
+        </form>
+    </div>
+
+    {% if search.too_short %}
+    <div class="empty-state"><p>Enter at least 2 characters to search.</p></div>
+    {% elif search.query and not search.groups %}
+    <div class="empty-state"><strong>No matching records</strong><p>Business OS found no persisted records matching “{{ search.query }}”.</p></div>
+    {% elif search.groups %}
+    <div class="v105-search-summary"><strong>{{ search.total }}</strong> result{% if search.total != 1 %}s{% endif %} across {{ search.groups|length }} group{% if search.groups|length != 1 %}s{% endif %}</div>
+    <div class="v105-search-groups">
+        {% for group in search.groups %}
+        <section class="panel v105-result-group">
+            <div class="panel-heading"><div><span class="section-kicker">RESULTS</span><h3>{{ group.name }}</h3></div><span class="count-bubble">{{ group.results|length }}</span></div>
+            <div class="v105-result-list">
+                {% for item in group.results %}
+                <a href="{{ item.href }}" class="v105-result-row">
+                    <span class="v105-result-kind">{{ item.kind }}</span>
+                    <div class="v105-result-copy"><strong>{{ item.title }}</strong>{% if item.subtitle %}<p>{{ item.subtitle }}</p>{% endif %}<small>{% if item.business_name %}{{ item.business_name }}{% endif %}{% if item.business_name and item.meta %} · {% endif %}{{ item.meta }}</small></div>
+                    <b aria-hidden="true">→</b>
+                </a>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

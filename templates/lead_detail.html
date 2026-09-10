@@ -38,7 +38,36 @@
 
     <div class="panel"><div class="panel-heading"><div><span class="section-kicker">CUSTOMER REQUEST</span><h3>What they need</h3></div></div><div class="request-grid"><div><span>Service</span><strong>{{ lead['service_type'] or 'Not specified' }}</strong></div><div><span>Preferred time</span><strong>{{ lead['preferred_time'] or 'No preference' }}</strong></div><div class="request-wide"><span>Issue</span><p>{{ lead['issue_description'] or 'No description provided.' }}</p></div></div></div>
 
-    <div class="panel"><div class="panel-heading"><div><span class="section-kicker">CUSTOMER COMMUNICATION</span><h3>Prepare follow-up</h3></div><span class="approval-pill">Human approval required</span></div>
+    {% if customer_continuity and customer_continuity['available'] %}
+    <div class="panel v105-continuity">
+        <div class="panel-heading"><div><span class="section-kicker">CUSTOMER CONTINUITY</span><h3>Related history</h3></div><span class="status-pill">Exact phone match</span></div>
+        <p class="ops-meta">Read-only context from this client only. Business OS does not merge records or infer identity.</p>
+        <div class="v105-continuity-stats">
+            <div><span>Leads</span><strong>{{ customer_continuity['counts']['leads'] }}</strong></div>
+            <div><span>Calls</span><strong>{{ customer_continuity['counts']['calls'] }}</strong></div>
+            <div><span>Appointments</span><strong>{{ customer_continuity['counts']['appointments'] }}</strong></div>
+            <div><span>Messages</span><strong>{{ customer_continuity['counts']['messages'] }}</strong></div>
+        </div>
+        {% if customer_continuity['other_leads'] %}
+        <div class="v105-related-leads">
+            {% for related in customer_continuity['other_leads'][:6] %}
+            <a href="{{ url_for('lead_detail', lead_id=related['id']) }}"><span><strong>{{ related['caller_name'] or 'Related inquiry' }}</strong><small>{{ related['service_type'] or 'Service request' }}</small></span><small>{{ related['status'] }} →</small></a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state compact"><p>No separate lead records share this exact phone number for this client.</p></div>
+        {% endif %}
+        {% if customer_continuity['events'] %}
+        <div class="v105-continuity-events">
+            {% for event in customer_continuity['events'][:8] %}
+            <a href="{{ url_for('lead_detail', lead_id=event['lead_id']) }}{% if event['kind']=='Appointment' %}#scheduling{% elif event['kind']=='Message' %}#customer-communication{% else %}#customer-story{% endif %}"><span class="timeline-kind">{{ event['kind'] }}</span><div><strong>{{ event['title'] }}</strong>{% if event['detail'] %}<p>{{ event['detail'] }}</p>{% endif %}<small>{{ event['time'] }}</small></div><b>→</b></a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div id="customer-communication" class="panel v105-anchor"><div class="panel-heading"><div><span class="section-kicker">CUSTOMER COMMUNICATION</span><h3>Prepare follow-up</h3></div><span class="approval-pill">Human approval required</span></div>
         <form method="POST" action="{{ url_for('queue_lead_message', lead_id=lead['id']) }}" class="message-composer"><div class="composer-to"><span>SMS TO</span><strong>{{ lead['phone'] or 'No phone number' }}</strong></div><textarea name="message_body" rows="5" {% if not lead['phone'] %}disabled{% endif %}>{{ suggested_message }}</textarea><div class="composer-footer"><p>This creates a draft in Automation. It does not send anything.</p><button class="btn" type="submit" {% if not lead['phone'] %}disabled{% endif %}>Queue for Approval</button></div></form>
         {% if messages %}<div class="inline-message-history">{% for message in messages[:4] %}<div><span class="message-status {{ message.status|lower|replace(' ', '-') }}">{{ message.status }}</span><p>{{ message.body }}</p><small>{{ message.created_at }}</small></div>{% endfor %}</div>{% endif %}
     </div>
@@ -47,13 +76,13 @@
 
     <div class="panel"><div class="panel-heading"><div><span class="section-kicker">INTERNAL CONTEXT</span><h3>Notes</h3></div></div><form method="POST" action="{{ url_for('add_lead_note', lead_id=lead['id']) }}" class="note-composer"><textarea name="note" rows="3" placeholder="Objections, estimate details, access notes, next steps..."></textarea><button class="btn secondary" type="submit">Add Note</button></form>{% if notes %}<div class="note-list">{% for note in notes %}<div class="note-item"><p>{{ note['note'] }}</p><span>{{ note['created_at'] }}</span></div>{% endfor %}</div>{% endif %}</div>
 
-    <div class="panel"><div class="panel-heading"><div><span class="section-kicker">CUSTOMER STORY</span><h3>Unified timeline</h3></div><span class="count-bubble">{{ unified_timeline|length }}</span></div>{% if unified_timeline %}<div class="activity-timeline unified-timeline">{% for event in unified_timeline %}<div class="activity-item"><div class="activity-marker"><span class="activity-dot"></span></div><div class="activity-content"><div class="timeline-kind">{{ event['kind'] }}</div><strong>{{ event['title'] }}</strong>{% if event['detail'] %}<p>{{ event['detail'] }}</p>{% endif %}<span class="activity-time">{{ event['time'] }}</span></div></div>{% endfor %}</div>{% else %}<div class="empty-state"><p>No customer history yet.</p></div>{% endif %}</div>
+    <div id="customer-story" class="panel v105-anchor"><div class="panel-heading"><div><span class="section-kicker">CUSTOMER STORY</span><h3>Unified timeline</h3></div><span class="count-bubble">{{ unified_timeline|length }}</span></div>{% if unified_timeline %}<div class="activity-timeline unified-timeline">{% for event in unified_timeline %}<div class="activity-item"><div class="activity-marker"><span class="activity-dot"></span></div><div class="activity-content"><div class="timeline-kind">{{ event['kind'] }}</div><strong>{{ event['title'] }}</strong>{% if event['detail'] %}<p>{{ event['detail'] }}</p>{% endif %}<span class="activity-time">{{ event['time'] }}</span></div></div>{% endfor %}</div>{% else %}<div class="empty-state"><p>No customer history yet.</p></div>{% endif %}</div>
 </div>
 
 <div class="lead-ops-rail">
     <div class="panel workflow-card"><div class="panel-heading"><div><span class="section-kicker">PIPELINE</span><h3>{{ lead['status'] }}</h3></div></div><div class="workflow-track"><div class="workflow-node {% if lead['status'] in ['New','Contacted','Estimate Scheduled','Won'] %}active{% endif %}"><span>1</span><small>New</small></div><i></i><div class="workflow-node {% if lead['status'] in ['Contacted','Estimate Scheduled','Won'] %}active{% endif %}"><span>2</span><small>Contacted</small></div><i></i><div class="workflow-node {% if lead['status'] in ['Estimate Scheduled','Won'] %}active{% endif %}"><span>3</span><small>Estimate</small></div><i></i><div class="workflow-node {% if lead['status'] == 'Won' %}active{% endif %}"><span>4</span><small>Won</small></div></div><div class="workflow-actions">{% if lead['status'] == 'New' %}<form method="POST" action="{{ url_for('update_lead_status', lead_id=lead['id']) }}"><input type="hidden" name="status" value="Contacted"><button class="workflow-button primary" type="submit">Mark Contacted</button></form>{% endif %}{% if lead['status'] not in ['Won','Lost'] %}<form method="POST" action="{{ url_for('update_lead_status', lead_id=lead['id']) }}"><input type="hidden" name="status" value="Won"><button class="workflow-button success" type="submit">Mark Won</button></form><form method="POST" action="{{ url_for('update_lead_status', lead_id=lead['id']) }}"><input type="hidden" name="status" value="Lost"><button class="workflow-button danger" type="submit">Mark Lost</button></form>{% else %}<form method="POST" action="{{ url_for('update_lead_status', lead_id=lead['id']) }}"><input type="hidden" name="status" value="New"><button class="workflow-button secondary" type="submit">Reopen Lead</button></form>{% endif %}</div></div>
 
-    <div class="panel scheduling-card"><div class="panel-heading"><div><span class="section-kicker">SCHEDULING</span><h3>Book estimate</h3></div></div>
+    <div id="scheduling" class="panel scheduling-card v105-anchor"><div class="panel-heading"><div><span class="section-kicker">SCHEDULING</span><h3>Book estimate</h3></div></div>
         {% set active_appointment = namespace(found=false) %}{% for appt in appointments %}{% if appt['status'] == 'Scheduled' and not active_appointment.found %}{% set active_appointment.found = true %}<div class="booked-estimate"><span>CONFIRMED</span><strong>{{ appt['start_at']|replace('T', ' ') }}</strong><small>{{ appt['service_type'] or lead['service_type'] }}</small><form method="POST" action="{{ url_for('cancel_appointment', appointment_id=appt['id']) }}"><button class="text-button danger" type="submit">Cancel estimate</button></form></div>{% endif %}{% endfor %}
         {% if not active_appointment.found %}<form method="POST" action="{{ url_for('create_appointment', lead_id=lead['id']) }}" class="schedule-form"><label><span>Date & time</span><input type="datetime-local" name="start_at" required></label><label><span>Duration</span><select name="duration_minutes"><option value="30">30 minutes</option><option value="60" selected>1 hour</option><option value="90">90 minutes</option><option value="120">2 hours</option></select></label><label><span>Field note</span><textarea name="appointment_notes" rows="2" placeholder="Gate code, access instructions, estimator notes..."></textarea></label><button class="btn full" type="submit">Add to Schedule</button></form>{% endif %}
     </div>

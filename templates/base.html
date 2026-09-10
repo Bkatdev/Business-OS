@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='v102_restore.css') }}?v=1">
     <link rel="stylesheet" href="{{ url_for('static', filename='v103.css') }}?v=1">
     <link rel="stylesheet" href="{{ url_for('static', filename='v104.css') }}?v=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='v105.css') }}?v=1">
 </head>
 <body>
 <div class="app-shell">
@@ -118,7 +119,13 @@
                 <small>BUSINESS OS</small>
                 <h1>{% block heading %}Command Center{% endblock %}</h1>
             </div>
-            <div class="topbar-actions">{% block actions %}{% endblock %}</div>
+            <div class="topbar-actions">
+                <form method="GET" action="{{ url_for('global_search') }}" class="v105-search-form v105-search-form-top" role="search">
+                    <input name="q" value="{{ request.args.get('q','') if request.endpoint == 'global_search' else '' }}" placeholder="Search Business OS" aria-label="Search Business OS" autocomplete="off">
+                    <button class="btn secondary" type="submit">Search</button>
+                </form>
+                {% block actions %}{% endblock %}
+            </div>
         </header>
 
         {% with msgs=get_flashed_messages(with_categories=true) %}
