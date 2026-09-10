@@ -108,6 +108,82 @@ def init_db():
         """
     )
 
+
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS lead_activities (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lead_id INTEGER NOT NULL,
+            activity_type TEXT NOT NULL DEFAULT 'Status',
+            title TEXT NOT NULL,
+            details TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (lead_id) REFERENCES leads(id)
+        )
+        """
+    )
+
+    con.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_lead_activities_lead_id
+        ON lead_activities(lead_id)
+        """
+    )
+
+    con.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_lead_activities_created_at
+        ON lead_activities(created_at)
+        """
+    )
+
+    con.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS trg_lead_created_activity
+        AFTER INSERT ON leads
+        BEGIN
+            INSERT INTO lead_activities (
+                lead_id,
+                activity_type,
+                title,
+                details,
+                created_at
+            )
+            VALUES (
+                NEW.id,
+                'Created',
+                'Lead captured',
+                'Lead entered Business OS.',
+                NEW.created_at
+            );
+        END
+        """
+    )
+
+    con.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS trg_lead_status_activity
+        AFTER UPDATE OF status ON leads
+        WHEN OLD.status != NEW.status
+        BEGIN
+            INSERT INTO lead_activities (
+                lead_id,
+                activity_type,
+                title,
+                details,
+                created_at
+            )
+            VALUES (
+                NEW.id,
+                'Status',
+                'Status changed to ' || NEW.status,
+                'Previous status: ' || OLD.status,
+                datetime('now', 'localtime')
+            );
+        END
+        """
+    )
+
     existing = {
         row["name"]
         for row in con.execute("PRAGMA table_info(businesses)")

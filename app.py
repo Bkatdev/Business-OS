@@ -163,7 +163,6 @@ def dashboard():
         SELECT COUNT(*)
         FROM leads
         WHERE status = 'Estimate Scheduled'
-           OR appointment_status = 'Scheduled'
         """
     ).fetchone()[0]
 
@@ -1069,6 +1068,16 @@ def lead_detail(lead_id):
         (lead_id,),
     ).fetchone()
 
+    activities = conn.execute(
+        """
+        SELECT *
+        FROM lead_activities
+        WHERE lead_id = ?
+        ORDER BY id DESC
+        """,
+        (lead_id,),
+    ).fetchall()
+
     conn.close()
 
     triage = triage_lead(
@@ -1076,6 +1085,7 @@ def lead_detail(lead_id):
         safety_flag=lead["safety_flag"],
         preferred_time=lead["preferred_time"],
         appointment_status=lead["appointment_status"],
+        lead_status=lead["status"],
     )
 
     return render_template(
@@ -1083,6 +1093,7 @@ def lead_detail(lead_id):
         lead=lead,
         call=call,
         triage=triage,
+        activities=activities,
     )
 
 LEAD_STATUSES = [
@@ -1131,12 +1142,14 @@ def update_lead_status(lead_id):
         conn.close()
         return render_template("404.html"), 404
 
-    appointment_status = None
-
     if status == "Estimate Scheduled":
         appointment_status = "Scheduled"
+    elif status in ("New", "Lost"):
+        appointment_status = "Not Scheduled"
+    else:
+        appointment_status = None
 
-    if appointment_status:
+    if appointment_status is not None:
         conn.execute(
             """
             UPDATE leads

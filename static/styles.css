@@ -2724,3 +2724,142 @@ a.customer-name:hover {
 
 }
 
+
+/* ==========================================
+   BUSINESS OS LEAD ACTIVITY
+   ========================================== */
+
+.lead-activity-card {
+    margin-top: 18px;
+}
+
+.activity-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+
+    margin-bottom: 18px;
+}
+
+.activity-header h3 {
+    margin: 0;
+
+    color: var(--ink);
+
+    font-size: 14px;
+}
+
+.activity-header span {
+    color: var(--muted);
+
+    font-size: 9px;
+}
+
+.activity-timeline {
+    position: relative;
+
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.activity-item {
+    position: relative;
+
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 11px;
+
+    padding-bottom: 18px;
+}
+
+.activity-item:last-child {
+    padding-bottom: 0;
+}
+
+.activity-marker {
+    position: relative;
+
+    display: flex;
+    justify-content: center;
+}
+
+.activity-marker::after {
+    content: "";
+
+    position: absolute;
+    top: 12px;
+    bottom: -18px;
+
+    width: 1px;
+
+    background: var(--line);
+}
+
+.activity-item:last-child
+.activity-marker::after {
+    display: none;
+}
+
+.activity-dot {
+    position: relative;
+    z-index: 1;
+
+    width: 9px;
+    height: 9px;
+
+    margin-top: 3px;
+
+    border: 2px solid white;
+    border-radius: 50%;
+
+    background: var(--accent);
+
+    box-shadow:
+        0 0 0 2px var(--accent-soft);
+}
+
+.activity-content {
+    min-width: 0;
+}
+
+.activity-content strong {
+    display: block;
+
+    color: var(--ink-soft);
+
+    font-size: 10px;
+}
+
+.activity-content p {
+    margin: 4px 0 0;
+
+    color: var(--muted);
+
+    font-size: 9px;
+    line-height: 1.5;
+}
+
+.activity-time {
+    display: block;
+
+    margin-top: 5px;
+
+    color: #98a39d;
+
+    font-size: 8px;
+}
+
+.activity-empty {
+    padding: 18px;
+
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+
+    color: var(--muted);
+
+    font-size: 9px;
+    text-align: center;
+}
+

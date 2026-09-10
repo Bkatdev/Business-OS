@@ -782,4 +782,73 @@
 
 </div>
 
+
+
+<div class="card lead-activity-card">
+
+    <div class="activity-header">
+
+        <div>
+            <h3>Lead Activity</h3>
+            <span>
+                History of this opportunity
+            </span>
+        </div>
+
+        {% if activities %}
+        <span>
+            {{ activities|length }}
+            event{% if activities|length != 1 %}s{% endif %}
+        </span>
+        {% endif %}
+
+    </div>
+
+
+    {% if activities %}
+
+    <div class="activity-timeline">
+
+        {% for activity in activities %}
+
+        <div class="activity-item">
+
+            <div class="activity-marker">
+                <span class="activity-dot"></span>
+            </div>
+
+            <div class="activity-content">
+
+                <strong>
+                    {{ activity["title"] }}
+                </strong>
+
+                {% if activity["details"] %}
+                <p>
+                    {{ activity["details"] }}
+                </p>
+                {% endif %}
+
+                <span class="activity-time">
+                    {{ activity["created_at"] }}
+                </span>
+
+            </div>
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+    {% else %}
+
+    <div class="activity-empty">
+        No activity recorded yet.
+    </div>
+
+    {% endif %}
+
+</div>
+
 {% endblock %}
