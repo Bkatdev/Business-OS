@@ -797,6 +797,48 @@ def approval_action(
 
 
 
+def _normalize_phone(value):
+    return "".join(
+        character
+        for character in str(value or "")
+        if character.isdigit()
+    )
+
+
+def _resolve_retell_business(conn, agent_id):
+    agent_id = str(agent_id or "").strip()
+
+    if agent_id:
+        mapped = conn.execute(
+            """
+            SELECT id
+            FROM businesses
+            WHERE status = 'Client'
+              AND retell_agent_id = ?
+            LIMIT 1
+            """,
+            (agent_id,),
+        ).fetchone()
+
+        if mapped:
+            return mapped["id"]
+
+    clients = conn.execute(
+        """
+        SELECT id
+        FROM businesses
+        WHERE status = 'Client'
+        ORDER BY id DESC
+        LIMIT 2
+        """
+    ).fetchall()
+
+    if len(clients) == 1:
+        return clients[0]["id"]
+
+    return None
+
+
 @app.route("/webhooks/retell", methods=["POST"])
 def retell_webhook():
     data = request.get_json(silent=True) or {}
@@ -821,6 +863,10 @@ def retell_webhook():
 
     retell_call_id = str(
         call.get("call_id", "") or ""
+    ).strip()
+
+    retell_agent_id = str(
+        call.get("agent_id", "") or ""
     ).strip()
 
     caller_phone = str(
@@ -942,7 +988,7 @@ def retell_webhook():
     if retell_call_id:
         existing_call = conn.execute(
             """
-            SELECT id
+            SELECT id, lead_id
             FROM calls
             WHERE retell_call_id = ?
             LIMIT 1
@@ -952,56 +998,147 @@ def retell_webhook():
 
     if existing_call:
         conn.close()
-
         return {
             "ok": True,
             "duplicate": True,
             "call_id": existing_call["id"],
+            "lead_id": existing_call["lead_id"],
         }, 200
 
-    cursor = conn.execute(
-        """
-        INSERT INTO leads (
-            caller_name,
-            phone,
-            address,
-            service_type,
-            issue_description,
-            lead_type,
-            priority,
-            safety_flag,
-            preferred_time,
-            appointment_status,
-            status,
-            source,
-            retell_call_id,
-            created_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            caller_name,
-            caller_phone,
-            address,
-            service_type,
-            issue_description,
-            lead_type,
-            priority,
-            safety_flag,
-            preferred_time,
-            appointment_status,
-            "New",
-            "AI Receptionist",
-            retell_call_id,
-            now_iso(),
-        ),
+    business_id = _resolve_retell_business(
+        conn,
+        retell_agent_id,
     )
 
-    lead_id = cursor.lastrowid
+    # A repeat call from the same phone number should attach to the
+    # existing open opportunity instead of creating CRM clutter.
+    duplicate_lead = None
+    normalized_phone = _normalize_phone(caller_phone)
+
+    if business_id and normalized_phone:
+        candidates = conn.execute(
+            """
+            SELECT *
+            FROM leads
+            WHERE business_id = ?
+              AND status NOT IN ('Won', 'Lost')
+            ORDER BY id DESC
+            LIMIT 50
+            """,
+            (business_id,),
+        ).fetchall()
+
+        for candidate in candidates:
+            if _normalize_phone(candidate["phone"]) == normalized_phone:
+                duplicate_lead = candidate
+                break
+
+    timestamp = now_iso()
+
+    if duplicate_lead:
+        lead_id = duplicate_lead["id"]
+
+        merged_priority = (
+            "Urgent"
+            if priority == "Urgent" or duplicate_lead["priority"] == "Urgent"
+            else "Normal"
+        )
+
+        conn.execute(
+            """
+            UPDATE leads
+            SET caller_name = CASE WHEN caller_name = '' THEN ? ELSE caller_name END,
+                address = CASE WHEN address = '' THEN ? ELSE address END,
+                service_type = CASE WHEN service_type = '' THEN ? ELSE service_type END,
+                issue_description = CASE WHEN issue_description = '' THEN ? ELSE issue_description END,
+                preferred_time = CASE WHEN ? != '' THEN ? ELSE preferred_time END,
+                safety_flag = CASE WHEN ? != '' THEN ? ELSE safety_flag END,
+                priority = ?,
+                retell_call_id = ?,
+                updated_at = ?
+            WHERE id = ?
+            """,
+            (
+                caller_name,
+                address,
+                service_type,
+                issue_description,
+                preferred_time,
+                preferred_time,
+                safety_flag,
+                safety_flag,
+                merged_priority,
+                retell_call_id,
+                timestamp,
+                lead_id,
+            ),
+        )
+
+        conn.execute(
+            """
+            INSERT INTO lead_activities (
+                lead_id,
+                activity_type,
+                title,
+                details,
+                created_at
+            )
+            VALUES (?, 'Call', 'Repeat inquiry received', ?, ?)
+            """,
+            (
+                lead_id,
+                "Another inbound call was attached to this open lead.",
+                timestamp,
+            ),
+        )
+    else:
+        cursor = conn.execute(
+            """
+            INSERT INTO leads (
+                business_id,
+                caller_name,
+                phone,
+                address,
+                service_type,
+                issue_description,
+                lead_type,
+                priority,
+                safety_flag,
+                preferred_time,
+                appointment_status,
+                status,
+                source,
+                retell_call_id,
+                created_at,
+                updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                business_id,
+                caller_name,
+                caller_phone,
+                address,
+                service_type,
+                issue_description,
+                lead_type,
+                priority,
+                safety_flag,
+                preferred_time,
+                appointment_status,
+                "New",
+                "AI Receptionist",
+                retell_call_id,
+                timestamp,
+                timestamp,
+            ),
+        )
+        lead_id = cursor.lastrowid
 
     cursor = conn.execute(
         """
         INSERT INTO calls (
+            business_id,
             lead_id,
             retell_call_id,
             caller_phone,
@@ -1011,9 +1148,10 @@ def retell_webhook():
             call_status,
             created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
+            business_id,
             lead_id,
             retell_call_id,
             caller_phone,
@@ -1021,7 +1159,7 @@ def retell_webhook():
             summary,
             transcript,
             "Completed",
-            now_iso(),
+            timestamp,
         ),
     )
 
@@ -1033,8 +1171,10 @@ def retell_webhook():
     return {
         "ok": True,
         "duplicate": False,
+        "duplicate_lead": bool(duplicate_lead),
         "lead_id": lead_id,
         "call_id": call_id,
+        "business_id": business_id,
     }, 201
 
 
@@ -1105,6 +1245,16 @@ def lead_detail(lead_id):
         (lead_id,),
     ).fetchall()
 
+    notes = conn.execute(
+        """
+        SELECT *
+        FROM lead_notes
+        WHERE lead_id = ?
+        ORDER BY id DESC
+        """,
+        (lead_id,),
+    ).fetchall()
+
     conn.close()
 
     triage = triage_lead(
@@ -1121,6 +1271,7 @@ def lead_detail(lead_id):
         call=call,
         triage=triage,
         activities=activities,
+        notes=notes,
     )
 
 LEAD_STATUSES = [
@@ -1176,17 +1327,34 @@ def update_lead_status(lead_id):
     else:
         appointment_status = None
 
+    timestamp = now_iso()
+    last_contacted_at = timestamp if status == "Contacted" else None
+    clear_follow_up = status in ("Won", "Lost")
+
     if appointment_status is not None:
         conn.execute(
             """
             UPDATE leads
             SET status = ?,
-                appointment_status = ?
+                appointment_status = ?,
+                updated_at = ?,
+                last_contacted_at = CASE
+                    WHEN ? IS NOT NULL THEN ?
+                    ELSE last_contacted_at
+                END,
+                next_follow_up_at = CASE
+                    WHEN ? THEN ''
+                    ELSE next_follow_up_at
+                END
             WHERE id = ?
             """,
             (
                 status,
                 appointment_status,
+                timestamp,
+                last_contacted_at,
+                last_contacted_at,
+                clear_follow_up,
                 lead_id,
             ),
         )
@@ -1194,11 +1362,24 @@ def update_lead_status(lead_id):
         conn.execute(
             """
             UPDATE leads
-            SET status = ?
+            SET status = ?,
+                updated_at = ?,
+                last_contacted_at = CASE
+                    WHEN ? IS NOT NULL THEN ?
+                    ELSE last_contacted_at
+                END,
+                next_follow_up_at = CASE
+                    WHEN ? THEN ''
+                    ELSE next_follow_up_at
+                END
             WHERE id = ?
             """,
             (
                 status,
+                timestamp,
+                last_contacted_at,
+                last_contacted_at,
+                clear_follow_up,
                 lead_id,
             ),
         )
@@ -1217,6 +1398,104 @@ def update_lead_status(lead_id):
             lead_id=lead_id,
         )
     )
+
+
+@app.route(
+    "/lead/<int:lead_id>/follow-up",
+    methods=["POST"],
+)
+def update_lead_follow_up(lead_id):
+    next_follow_up_at = request.form.get("next_follow_up_at", "").strip()
+
+    conn = connect()
+    lead = conn.execute(
+        "SELECT id FROM leads WHERE id = ?",
+        (lead_id,),
+    ).fetchone()
+
+    if lead is None:
+        conn.close()
+        return render_template("404.html"), 404
+
+    timestamp = now_iso()
+    conn.execute(
+        """
+        UPDATE leads
+        SET next_follow_up_at = ?,
+            updated_at = ?
+        WHERE id = ?
+        """,
+        (next_follow_up_at, timestamp, lead_id),
+    )
+
+    conn.execute(
+        """
+        INSERT INTO lead_activities (
+            lead_id, activity_type, title, details, created_at
+        )
+        VALUES (?, 'Follow Up', ?, ?, ?)
+        """,
+        (
+            lead_id,
+            "Follow-up scheduled" if next_follow_up_at else "Follow-up cleared",
+            next_follow_up_at or "No follow-up date set.",
+            timestamp,
+        ),
+    )
+
+    conn.commit()
+    conn.close()
+    flash("Follow-up updated.", "success")
+    return redirect(url_for("lead_detail", lead_id=lead_id))
+
+
+@app.route(
+    "/lead/<int:lead_id>/note",
+    methods=["POST"],
+)
+def add_lead_note(lead_id):
+    note = request.form.get("note", "").strip()
+
+    if not note:
+        flash("Write a note before saving.", "error")
+        return redirect(url_for("lead_detail", lead_id=lead_id))
+
+    conn = connect()
+    lead = conn.execute(
+        "SELECT id FROM leads WHERE id = ?",
+        (lead_id,),
+    ).fetchone()
+
+    if lead is None:
+        conn.close()
+        return render_template("404.html"), 404
+
+    timestamp = now_iso()
+    conn.execute(
+        """
+        INSERT INTO lead_notes (lead_id, note, created_at)
+        VALUES (?, ?, ?)
+        """,
+        (lead_id, note, timestamp),
+    )
+    conn.execute(
+        """
+        INSERT INTO lead_activities (
+            lead_id, activity_type, title, details, created_at
+        )
+        VALUES (?, 'Note', 'Note added', ?, ?)
+        """,
+        (lead_id, note, timestamp),
+    )
+    conn.execute(
+        "UPDATE leads SET updated_at = ? WHERE id = ?",
+        (timestamp, lead_id),
+    )
+    conn.commit()
+    conn.close()
+
+    flash("Note added.", "success")
+    return redirect(url_for("lead_detail", lead_id=lead_id))
 
 
 @app.route("/calls")
@@ -1254,21 +1533,124 @@ def clients():
 
     rows = conn.execute(
         """
-        SELECT *
+        SELECT
+            businesses.*,
+            (SELECT COUNT(*) FROM leads WHERE leads.business_id = businesses.id) AS lead_count,
+            (SELECT COUNT(*) FROM leads WHERE leads.business_id = businesses.id AND leads.status NOT IN ('Won', 'Lost')) AS open_lead_count,
+            (SELECT COUNT(*) FROM leads WHERE leads.business_id = businesses.id AND leads.priority = 'Urgent' AND leads.status NOT IN ('Won', 'Lost')) AS urgent_lead_count,
+            (SELECT COUNT(*) FROM calls WHERE calls.business_id = businesses.id) AS call_count
         FROM businesses
-        WHERE status = 'Client'
-        ORDER BY id DESC
+        WHERE businesses.status = 'Client'
+        ORDER BY businesses.id DESC
         """
     ).fetchall()
 
     conn.close()
-
     businesses = businesses_with_analysis(rows)
 
     return render_template(
         "clients.html",
         businesses=businesses,
     )
+
+
+@app.route("/client/<int:bid>")
+def client_operations(bid):
+    from services.action_queue import build_action_queue
+
+    conn = connect()
+    business = conn.execute(
+        "SELECT * FROM businesses WHERE id = ? AND status = 'Client'",
+        (bid,),
+    ).fetchone()
+
+    if business is None:
+        conn.close()
+        return render_template("404.html"), 404
+
+    leads = conn.execute(
+        """
+        SELECT
+            leads.*,
+            businesses.name AS business_name,
+            (
+                SELECT MAX(lead_activities.created_at)
+                FROM lead_activities
+                WHERE lead_activities.lead_id = leads.id
+            ) AS last_activity_at
+        FROM leads
+        LEFT JOIN businesses ON businesses.id = leads.business_id
+        WHERE leads.business_id = ?
+        ORDER BY leads.id DESC
+        """,
+        (bid,),
+    ).fetchall()
+
+    recent_calls = conn.execute(
+        """
+        SELECT calls.*, leads.caller_name
+        FROM calls
+        LEFT JOIN leads ON leads.id = calls.lead_id
+        WHERE calls.business_id = ?
+        ORDER BY calls.id DESC
+        LIMIT 8
+        """,
+        (bid,),
+    ).fetchall()
+
+    conn.close()
+
+    open_leads = [lead for lead in leads if lead["status"] not in ("Won", "Lost")]
+    won_count = sum(1 for lead in leads if lead["status"] == "Won")
+    lost_count = sum(1 for lead in leads if lead["status"] == "Lost")
+    closed_count = won_count + lost_count
+    win_rate = round((won_count / closed_count) * 100) if closed_count else 0
+    urgent_count = sum(
+        1 for lead in open_leads
+        if lead["priority"] == "Urgent" or lead["safety_flag"]
+    )
+
+    action_queue = build_action_queue(open_leads, limit=10)
+
+    return render_template(
+        "client_operations.html",
+        business=business,
+        leads=leads,
+        recent_calls=recent_calls,
+        action_queue=action_queue,
+        open_count=len(open_leads),
+        urgent_count=urgent_count,
+        won_count=won_count,
+        win_rate=win_rate,
+    )
+
+
+@app.route(
+    "/client/<int:bid>/retell-agent",
+    methods=["POST"],
+)
+def update_client_retell_agent(bid):
+    retell_agent_id = request.form.get("retell_agent_id", "").strip()
+
+    conn = connect()
+    business = conn.execute(
+        "SELECT id FROM businesses WHERE id = ? AND status = 'Client'",
+        (bid,),
+    ).fetchone()
+
+    if business is None:
+        conn.close()
+        return render_template("404.html"), 404
+
+    conn.execute(
+        "UPDATE businesses SET retell_agent_id = ? WHERE id = ?",
+        (retell_agent_id, bid),
+    )
+    conn.commit()
+    conn.close()
+
+    flash("Receptionist mapping updated.", "success")
+    return redirect(url_for("client_operations", bid=bid))
 
 
 @app.route("/prospects/export")

@@ -1,1 +1,18 @@
-{% extends 'base.html' %}{% block heading %}Clients{% endblock %}{% block content %}<div class='panel'>{% include '_table.html' %}</div>{% endblock %}
+{% extends "base.html" %}
+{% block title %}Clients · Business OS{% endblock %}
+{% block heading %}Clients{% endblock %}
+{% block content %}
+<div class="section-heading"><div><span class="section-kicker">ACTIVE ACCOUNTS</span><h2>Client Operations</h2></div></div>
+{% if businesses %}
+<div class="client-grid">
+{% for business in businesses %}
+<a class="client-card" href="{{ url_for('client_operations', bid=business['id']) }}">
+<div class="client-card-head"><div><span class="section-kicker">CLIENT</span><h3>{{ business["name"] }}</h3><p>{{ business["city"] }} · {{ business["category"] }}</p></div>
+{% if business["urgent_lead_count"] %}<span class="status-pill urgent">{{ business["urgent_lead_count"] }} urgent</span>{% else %}<span class="status-pill">Active</span>{% endif %}</div>
+<div class="client-mini-stats"><div><span>Leads</span><strong>{{ business["lead_count"] }}</strong></div><div><span>Open</span><strong>{{ business["open_lead_count"] }}</strong></div><div><span>Calls</span><strong>{{ business["call_count"] }}</strong></div></div>
+<div class="client-card-link">Open operations →</div>
+</a>
+{% endfor %}
+</div>
+{% else %}<div class="panel empty-state"><h3>No clients yet</h3><p>Move a qualified business to Client and its operations workspace will appear here.</p></div>{% endif %}
+{% endblock %}

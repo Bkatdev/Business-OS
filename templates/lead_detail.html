@@ -437,7 +437,13 @@
                         </span>
 
                         <div class="detail-value">
-                            {{ lead["business_name"] or "Demo / Unassigned" }}
+                            {% if lead["business_id"] and lead["business_name"] %}
+                            <a href="{{ url_for('client_operations', bid=lead['business_id']) }}">
+                                {{ lead["business_name"] }}
+                            </a>
+                            {% else %}
+                                Demo / Unassigned
+                            {% endif %}
                         </div>
                     </div>
 
@@ -576,6 +582,23 @@
                         {{ lead["appointment_status"] }}
                     </div>
                 </div>
+            </div>
+
+
+            <div class="lead-card ops-card">
+                <h2>Follow-Up</h2>
+
+                <form method="POST" action="{{ url_for('update_lead_follow_up', lead_id=lead['id']) }}" class="ops-form">
+                    <label class="detail-label" for="next_follow_up_at">Next Follow-Up</label>
+                    <input id="next_follow_up_at" name="next_follow_up_at" type="datetime-local" value="{{ lead['next_follow_up_at'] or '' }}" class="ops-input">
+                    <div class="ops-form-actions">
+                        <button class="workflow-button primary" type="submit">Save Follow-Up</button>
+                    </div>
+                </form>
+
+                {% if lead["last_contacted_at"] %}
+                <p class="ops-meta">Last contacted: {{ lead["last_contacted_at"] }}</p>
+                {% endif %}
             </div>
 
 
@@ -782,6 +805,29 @@
 
 </div>
 
+
+
+<div class="lead-card ops-card lead-notes-card">
+    <h2>Internal Notes</h2>
+
+    <form method="POST" action="{{ url_for('add_lead_note', lead_id=lead['id']) }}" class="ops-form">
+        <textarea name="note" class="ops-textarea" rows="3" placeholder="Add context, objections, estimate details, or next steps..."></textarea>
+        <div class="ops-form-actions">
+            <button class="workflow-button secondary" type="submit">Add Note</button>
+        </div>
+    </form>
+
+    {% if notes %}
+    <div class="note-list">
+        {% for note in notes %}
+        <div class="note-item">
+            <p>{{ note["note"] }}</p>
+            <span>{{ note["created_at"] }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
 
 
 <div class="card lead-activity-card">

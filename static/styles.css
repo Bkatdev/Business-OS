@@ -2886,3 +2886,244 @@ a.customer-name:hover {
 .action-age { margin-top:7px; font-size:.7rem; font-weight:650; opacity:.5; }
 .action-arrow { padding-top:4px; font-size:1rem; opacity:.48; }
 @media (max-width:680px) { .action-queue-summary { align-items:flex-start; flex-direction:column; } .action-queue-item { grid-template-columns:30px minmax(0,1fr) 18px; gap:9px; } }
+
+/* =========================================
+   BUSINESS OS OPERATIONS ENGINE
+   ========================================= */
+
+.action-level.overdue {
+    background: rgba(220, 38, 38, 0.11);
+    color: #b91c1c;
+}
+
+.ops-card {
+    border-color: rgba(15, 118, 110, 0.16);
+}
+
+.ops-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ops-input,
+.ops-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #dbe3e8;
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: #fff;
+    color: #0f172a;
+    font: inherit;
+}
+
+.ops-textarea {
+    resize: vertical;
+    min-height: 88px;
+}
+
+.ops-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 4px;
+}
+
+.ops-meta {
+    margin: 12px 0 0;
+    color: #64748b;
+    font-size: 12px;
+}
+
+.lead-notes-card {
+    max-width: 1180px;
+    margin: 22px auto;
+}
+
+.note-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.note-item {
+    padding: 12px 14px;
+    border: 1px solid #edf1f3;
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+.note-item p {
+    margin: 0 0 6px;
+    color: #334155;
+    line-height: 1.5;
+}
+
+.note-item span {
+    color: #94a3b8;
+    font-size: 11px;
+}
+
+.client-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.client-card {
+    display: block;
+    padding: 22px;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    background: #fff;
+    color: inherit;
+    text-decoration: none;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.client-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.client-card-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    align-items: flex-start;
+}
+
+.client-card h3,
+.client-ops-hero h2 {
+    margin: 5px 0 4px;
+}
+
+.client-card p,
+.client-ops-hero p {
+    margin: 0;
+    color: #64748b;
+}
+
+.client-mini-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.client-mini-stats div {
+    padding: 12px;
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+.client-mini-stats span {
+    display: block;
+    color: #64748b;
+    font-size: 11px;
+    margin-bottom: 4px;
+}
+
+.client-mini-stats strong {
+    font-size: 20px;
+}
+
+.client-card-link {
+    margin-top: 18px;
+    color: #0f766e;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.client-ops-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+    margin-bottom: 22px;
+}
+
+.client-health {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.client-health span {
+    color: #64748b;
+    font-size: 12px;
+}
+
+.client-health strong {
+    color: #0f766e;
+}
+
+.client-metrics {
+    margin-bottom: 22px;
+}
+
+.client-lead-list,
+.client-call-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.client-lead-row,
+.client-call-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 13px 0;
+    border-top: 1px solid #eef2f4;
+    color: inherit;
+    text-decoration: none;
+}
+
+.client-lead-row:first-child,
+.client-call-row:first-child {
+    border-top: 0;
+}
+
+.client-lead-row div,
+.client-call-row div {
+    min-width: 0;
+}
+
+.client-lead-row strong,
+.client-call-row strong {
+    display: block;
+    margin-bottom: 3px;
+}
+
+.client-lead-row div > span,
+.client-call-row div > span {
+    display: block;
+    color: #64748b;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.client-call-row small {
+    flex: 0 0 auto;
+    color: #64748b;
+}
+
+@media (max-width: 850px) {
+    .client-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .client-ops-hero {
+        flex-direction: column;
+    }
+
+    .client-health {
+        align-items: flex-start;
+    }
+}

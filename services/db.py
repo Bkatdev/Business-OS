@@ -17,6 +17,7 @@ EXTRA_COLUMNS = {
     "estimate_offered": "INTEGER DEFAULT 0",
     "scheduling_mentioned": "INTEGER DEFAULT 0",
     "audit_confidence": "TEXT DEFAULT ''",
+    "retell_agent_id": "TEXT DEFAULT ''",
 }
 
 
@@ -181,6 +182,57 @@ def init_db():
                 datetime('now', 'localtime')
             );
         END
+        """
+    )
+
+    lead_existing = {
+        row["name"]
+        for row in con.execute("PRAGMA table_info(leads)")
+    }
+
+    lead_extra_columns = {
+        "updated_at": "TEXT DEFAULT ''",
+        "last_contacted_at": "TEXT DEFAULT ''",
+        "next_follow_up_at": "TEXT DEFAULT ''",
+        "duplicate_of_lead_id": "INTEGER",
+    }
+
+    for name, definition in lead_extra_columns.items():
+        if name not in lead_existing:
+            con.execute(
+                f"ALTER TABLE leads ADD COLUMN {name} {definition}"
+            )
+
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS lead_notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lead_id INTEGER NOT NULL,
+            note TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (lead_id) REFERENCES leads(id)
+        )
+        """
+    )
+
+    con.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_lead_notes_lead_id
+        ON lead_notes(lead_id)
+        """
+    )
+
+    con.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_leads_next_follow_up_at
+        ON leads(next_follow_up_at)
+        """
+    )
+
+    con.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_leads_phone_business
+        ON leads(business_id, phone)
         """
     )
 
