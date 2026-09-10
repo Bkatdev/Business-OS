@@ -1,0 +1,900 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+    .lead-page {
+        max-width: 1180px;
+        margin: 0 auto;
+    }
+
+    .lead-back {
+        display: inline-block;
+        margin-bottom: 18px;
+        color: #64748b;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .lead-back:hover {
+        color: #0f766e;
+    }
+
+    .lead-hero {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 24px;
+        margin-bottom: 26px;
+    }
+
+    .lead-hero h1 {
+        margin: 0 0 6px 0;
+        font-size: 32px;
+        line-height: 1.15;
+        color: #0f172a;
+    }
+
+    .lead-subtitle {
+        margin: 0;
+        color: #64748b;
+        font-size: 15px;
+    }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 7px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .badge-normal {
+        background: #ecfdf5;
+        color: #047857;
+        border: 1px solid #a7f3d0;
+    }
+
+    .badge-urgent {
+        background: #fef2f2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+    }
+
+    .badge-status {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+    }
+
+    .lead-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.65fr);
+        gap: 22px;
+        align-items: start;
+    }
+
+    .lead-column {
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+    }
+
+    .lead-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 22px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+
+    .lead-card h2 {
+        margin: 0 0 18px 0;
+        font-size: 16px;
+        color: #0f172a;
+    }
+
+    .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+    }
+
+    .detail-item {
+        min-width: 0;
+    }
+
+    .detail-label {
+        display: block;
+        margin-bottom: 5px;
+        color: #94a3b8;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    .detail-value {
+        color: #1e293b;
+        font-size: 14px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+
+    .service-description {
+        margin: 18px 0 0 0;
+        padding-top: 18px;
+        border-top: 1px solid #f1f5f9;
+        color: #475569;
+        line-height: 1.7;
+    }
+
+    .action-card {
+        border: 1px solid #99f6e4;
+        background:
+            linear-gradient(
+                145deg,
+                #f0fdfa 0%,
+                #ffffff 70%
+            );
+    }
+
+    .action-eyebrow {
+        color: #0f766e;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+    }
+
+    .action-title {
+        margin: 0 0 9px 0;
+        color: #134e4a;
+        font-size: 21px;
+        line-height: 1.3;
+    }
+
+    .action-reason {
+        margin: 0;
+        color: #475569;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .safety-card {
+        border: 1px solid #fecaca;
+        background: #fff7f7;
+    }
+
+    .safety-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #b91c1c !important;
+    }
+
+    .safety-card p {
+        margin-bottom: 0;
+        color: #7f1d1d;
+        line-height: 1.6;
+    }
+
+    .call-summary {
+        margin: 0;
+        color: #475569;
+        line-height: 1.7;
+    }
+
+    .call-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-top: 18px;
+        padding-top: 16px;
+        border-top: 1px solid #f1f5f9;
+        color: #64748b;
+        font-size: 13px;
+    }
+
+    .transcript {
+        margin: 0;
+        padding: 16px;
+        border-radius: 10px;
+        background: #f8fafc;
+        color: #334155;
+        font-family: inherit;
+        font-size: 14px;
+        line-height: 1.7;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    .status-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+    }
+
+    .created-date {
+        margin-top: 14px;
+        color: #94a3b8;
+        font-size: 12px;
+    }
+.workflow-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.workflow-progress {
+    display: flex;
+    align-items: flex-start;
+    margin: 8px 0 24px;
+}
+
+.workflow-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: #94a3b8;
+    text-align: center;
+}
+
+.workflow-step span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid #cbd5e1;
+    background: #ffffff;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.workflow-step small {
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.workflow-step.active {
+    color: #0f766e;
+}
+
+.workflow-step.active span {
+    border-color: #0f766e;
+    background: #0f766e;
+    color: #ffffff;
+}
+
+.workflow-line {
+    flex: 1;
+    height: 2px;
+    margin: 13px 5px 0;
+    background: #e2e8f0;
+}
+
+.workflow-actions {
+    display: grid;
+    gap: 9px;
+}
+
+.workflow-actions form {
+    margin: 0;
+}
+
+.workflow-button {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: 9px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    transition:
+        transform 120ms ease,
+        box-shadow 120ms ease,
+        background 120ms ease;
+}
+
+.workflow-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+}
+
+.workflow-button.primary {
+    background: #0f766e;
+    color: white;
+}
+
+.workflow-button.primary:hover {
+    background: #115e59;
+}
+
+.workflow-button.success {
+    background: #ecfdf5;
+    border-color: #a7f3d0;
+    color: #047857;
+}
+
+.workflow-button.danger {
+    background: #fff;
+    border-color: #fecaca;
+    color: #b91c1c;
+}
+
+.workflow-button.secondary {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    color: #334155;
+}
+    @media (max-width: 850px) {
+        .lead-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .lead-hero {
+            flex-direction: column;
+        }
+    }
+
+    @media (max-width: 560px) {
+        .detail-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .lead-card {
+            padding: 18px;
+        }
+
+        .lead-hero h1 {
+            font-size: 27px;
+        }
+    }
+</style>
+
+
+<div class="lead-page">
+
+    <a
+        class="lead-back"
+        href="{{ url_for('leads') }}"
+    >
+        ← Back to Leads
+    </a>
+
+
+    <div class="lead-hero">
+        <div>
+            <h1>
+                {{ lead["caller_name"] or "Unknown Caller" }}
+            </h1>
+
+            <p class="lead-subtitle">
+                {{ lead["lead_type"] }}
+                &nbsp;•&nbsp;
+                {{ lead["source"] }}
+                &nbsp;•&nbsp;
+                {{ lead["service_type"] or "Service not specified" }}
+            </p>
+        </div>
+
+        {% if lead["priority"] == "Urgent" %}
+            <span class="badge badge-urgent">
+                Urgent
+            </span>
+        {% else %}
+            <span class="badge badge-normal">
+                {{ lead["priority"] }}
+            </span>
+        {% endif %}
+    </div>
+
+
+    <div class="lead-grid">
+
+        <div class="lead-column">
+
+            <div class="lead-card">
+                <h2>Customer Details</h2>
+
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <span class="detail-label">
+                            Phone
+                        </span>
+
+                        <div class="detail-value">
+                            {{ lead["phone"] or "Not provided" }}
+                        </div>
+                    </div>
+
+                    <div class="detail-item">
+                        <span class="detail-label">
+                            Address
+                        </span>
+
+                        <div class="detail-value">
+                            {{ lead["address"] or "Not provided" }}
+                        </div>
+                    </div>
+
+                    <div class="detail-item">
+                        <span class="detail-label">
+                            Business
+                        </span>
+
+                        <div class="detail-value">
+                            {% if lead["business_id"] and lead["business_name"] %}
+                            <a href="{{ url_for('client_operations', bid=lead['business_id']) }}">
+                                {{ lead["business_name"] }}
+                            </a>
+                            {% else %}
+                                Demo / Unassigned
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="detail-item">
+                        <span class="detail-label">
+                            Source
+                        </span>
+
+                        <div class="detail-value">
+                            {{ lead["source"] }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="lead-card">
+                <h2>Service Request</h2>
+
+                <div class="detail-item">
+                    <span class="detail-label">
+                        Service
+                    </span>
+
+                    <div class="detail-value">
+                        {{ lead["service_type"] or "Not specified" }}
+                    </div>
+                </div>
+
+                <p class="service-description">
+                    {{ lead["issue_description"] or "No description provided." }}
+                </p>
+            </div>
+
+
+            {% if lead["safety_flag"] %}
+            <div class="lead-card safety-card">
+                <h2 class="safety-title">
+                    ⚠ Safety Alert
+                </h2>
+
+                <p>
+                    <strong>
+                        {{ lead["safety_flag"] }}
+                    </strong>
+                </p>
+            </div>
+            {% endif %}
+
+
+            {% if call %}
+            <div class="lead-card">
+                <h2>Call Summary</h2>
+
+                <p class="call-summary">
+                    {{ call["summary"] or "No summary available." }}
+                </p>
+
+                <div class="call-meta">
+                    <span>
+                        <strong>Duration:</strong>
+                        {{ call["duration_seconds"] }} seconds
+                    </span>
+
+                    <span>
+                        <strong>Call ID:</strong>
+                        {{ call["retell_call_id"] or "Not available" }}
+                    </span>
+                </div>
+            </div>
+
+
+            <div class="lead-card">
+                <h2>Call Transcript</h2>
+
+                <div class="transcript">
+                    {{ call["transcript"] or "No transcript available." }}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+
+        <div class="lead-column">
+
+            <div class="lead-card action-card">
+                <div class="action-eyebrow">
+                    Recommended Next Action
+                </div>
+
+                <h2 class="action-title">
+                    {{ triage["next_action"] }}
+                </h2>
+
+                <p class="action-reason">
+                    {{ triage["reason"] }}
+                </p>
+
+                <div style="margin-top: 16px;">
+                    {% if triage["level"] == "Urgent" %}
+                        <span class="badge badge-urgent">
+                            {{ triage["level"] }}
+                        </span>
+                    {% else %}
+                        <span class="badge badge-normal">
+                            {{ triage["level"] }}
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+
+
+            <div class="lead-card">
+                <h2>Appointment</h2>
+
+                <div class="detail-item">
+                    <span class="detail-label">
+                        Preferred Time
+                    </span>
+
+                    <div class="detail-value">
+                        {{ lead["preferred_time"] or "No preference provided" }}
+                    </div>
+                </div>
+
+                <div
+                    class="detail-item"
+                    style="margin-top: 18px;"
+                >
+                    <span class="detail-label">
+                        Appointment Status
+                    </span>
+
+                    <div class="detail-value">
+                        {{ lead["appointment_status"] }}
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="lead-card ops-card">
+                <h2>Follow-Up</h2>
+
+                <form method="POST" action="{{ url_for('update_lead_follow_up', lead_id=lead['id']) }}" class="ops-form">
+                    <label class="detail-label" for="next_follow_up_at">Next Follow-Up</label>
+                    <input id="next_follow_up_at" name="next_follow_up_at" type="datetime-local" value="{{ lead['next_follow_up_at'] or '' }}" class="ops-input">
+                    <div class="ops-form-actions">
+                        <button class="workflow-button primary" type="submit">Save Follow-Up</button>
+                    </div>
+                </form>
+
+                {% if lead["last_contacted_at"] %}
+                <p class="ops-meta">Last contacted: {{ lead["last_contacted_at"] }}</p>
+                {% endif %}
+            </div>
+
+
+            <div class="lead-card">
+    <div class="workflow-heading">
+        <div>
+            <span class="detail-label">
+                Lead Workflow
+            </span>
+
+            <h2 style="margin: 4px 0 0;">
+                {{ lead["status"] }}
+            </h2>
+        </div>
+
+        <span class="badge badge-status">
+            {{ lead["status"] }}
+        </span>
+    </div>
+
+    <div class="workflow-progress">
+        <div class="workflow-step
+            {% if lead['status'] in [
+                'New',
+                'Contacted',
+                'Estimate Scheduled',
+                'Won'
+            ] %}active{% endif %}">
+            <span>1</span>
+            <small>New</small>
+        </div>
+
+        <div class="workflow-line"></div>
+
+        <div class="workflow-step
+            {% if lead['status'] in [
+                'Contacted',
+                'Estimate Scheduled',
+                'Won'
+            ] %}active{% endif %}">
+            <span>2</span>
+            <small>Contacted</small>
+        </div>
+
+        <div class="workflow-line"></div>
+
+        <div class="workflow-step
+            {% if lead['status'] in [
+                'Estimate Scheduled',
+                'Won'
+            ] %}active{% endif %}">
+            <span>3</span>
+            <small>Estimate</small>
+        </div>
+
+        <div class="workflow-line"></div>
+
+        <div class="workflow-step
+            {% if lead['status'] == 'Won' %}active{% endif %}">
+            <span>4</span>
+            <small>Won</small>
+        </div>
+    </div>
+
+    <div class="workflow-actions">
+
+        {% if lead["status"] == "New" %}
+        <form
+            method="POST"
+            action="{{ url_for(
+                'update_lead_status',
+                lead_id=lead['id']
+            ) }}"
+        >
+            <input
+                type="hidden"
+                name="status"
+                value="Contacted"
+            >
+
+            <button
+                class="workflow-button primary"
+                type="submit"
+            >
+                Mark Contacted
+            </button>
+        </form>
+        {% endif %}
+
+
+        {% if lead["status"] in ["New", "Contacted"] %}
+        <form
+            method="POST"
+            action="{{ url_for(
+                'update_lead_status',
+                lead_id=lead['id']
+            ) }}"
+        >
+            <input
+                type="hidden"
+                name="status"
+                value="Estimate Scheduled"
+            >
+
+            <button
+                class="workflow-button primary"
+                type="submit"
+            >
+                Schedule Estimate
+            </button>
+        </form>
+        {% endif %}
+
+
+        {% if lead["status"] not in ["Won", "Lost"] %}
+        <form
+            method="POST"
+            action="{{ url_for(
+                'update_lead_status',
+                lead_id=lead['id']
+            ) }}"
+        >
+            <input
+                type="hidden"
+                name="status"
+                value="Won"
+            >
+
+            <button
+                class="workflow-button success"
+                type="submit"
+            >
+                Mark Won
+            </button>
+        </form>
+
+        <form
+            method="POST"
+            action="{{ url_for(
+                'update_lead_status',
+                lead_id=lead['id']
+            ) }}"
+        >
+            <input
+                type="hidden"
+                name="status"
+                value="Lost"
+            >
+
+            <button
+                class="workflow-button danger"
+                type="submit"
+            >
+                Mark Lost
+            </button>
+        </form>
+        {% endif %}
+
+
+        {% if lead["status"] in ["Won", "Lost"] %}
+        <form
+            method="POST"
+            action="{{ url_for(
+                'update_lead_status',
+                lead_id=lead['id']
+            ) }}"
+        >
+            <input
+                type="hidden"
+                name="status"
+                value="New"
+            >
+
+            <button
+                class="workflow-button secondary"
+                type="submit"
+            >
+                Reopen Lead
+            </button>
+        </form>
+        {% endif %}
+
+    </div>
+
+    <div class="created-date">
+        Created {{ lead["created_at"] }}
+    </div>
+</div>
+
+                <div class="status-row">
+                    <span class="badge badge-status">
+                        {{ lead["status"] }}
+                    </span>
+                </div>
+
+                <div class="created-date">
+                    Created {{ lead["created_at"] }}
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<div class="lead-card ops-card lead-notes-card">
+    <h2>Internal Notes</h2>
+
+    <form method="POST" action="{{ url_for('add_lead_note', lead_id=lead['id']) }}" class="ops-form">
+        <textarea name="note" class="ops-textarea" rows="3" placeholder="Add context, objections, estimate details, or next steps..."></textarea>
+        <div class="ops-form-actions">
+            <button class="workflow-button secondary" type="submit">Add Note</button>
+        </div>
+    </form>
+
+    {% if notes %}
+    <div class="note-list">
+        {% for note in notes %}
+        <div class="note-item">
+            <p>{{ note["note"] }}</p>
+            <span>{{ note["created_at"] }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+
+<div class="card lead-activity-card">
+
+    <div class="activity-header">
+
+        <div>
+            <h3>Lead Activity</h3>
+            <span>
+                History of this opportunity
+            </span>
+        </div>
+
+        {% if activities %}
+        <span>
+            {{ activities|length }}
+            event{% if activities|length != 1 %}s{% endif %}
+        </span>
+        {% endif %}
+
+    </div>
+
+
+    {% if activities %}
+
+    <div class="activity-timeline">
+
+        {% for activity in activities %}
+
+        <div class="activity-item">
+
+            <div class="activity-marker">
+                <span class="activity-dot"></span>
+            </div>
+
+            <div class="activity-content">
+
+                <strong>
+                    {{ activity["title"] }}
+                </strong>
+
+                {% if activity["details"] %}
+                <p>
+                    {{ activity["details"] }}
+                </p>
+                {% endif %}
+
+                <span class="activity-time">
+                    {{ activity["created_at"] }}
+                </span>
+
+            </div>
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+    {% else %}
+
+    <div class="activity-empty">
+        No activity recorded yet.
+    </div>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}

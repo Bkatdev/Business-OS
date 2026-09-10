@@ -77,18 +77,6 @@ Command Center
 
 </div>
 
-<div class="ops-launch-strip">
-    <a href="{{ url_for('schedule') }}" class="ops-launch-card">
-        <div class="ops-launch-icon">◫</div>
-        <div><span>Today</span><strong>{{ today_appointments }} estimate{% if today_appointments != 1 %}s{% endif %}</strong><small>Open the live schedule</small></div>
-        <b>→</b>
-    </a>
-    <a href="{{ url_for('automation_center') }}" class="ops-launch-card">
-        <div class="ops-launch-icon">⚡</div>
-        <div><span>Approval Gate</span><strong>{{ pending_messages }} message{% if pending_messages != 1 %}s{% endif %}</strong><small>Review before anything sends</small></div>
-        <b>→</b>
-    </a>
-</div>
 
 <div class="section-heading">
 

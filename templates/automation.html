@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Automation · Business OS{% endblock %}
+{% block heading %}Automation{% endblock %}
+{% block content %}
+<div class="automation-hero">
+    <div><span class="section-kicker">CONTROLLED AUTOMATION</span><h2>Move faster without losing control.</h2><p>Business OS can prepare customer follow-up while a human keeps the final approval. This is the safety layer before we connect a live SMS provider.</p></div>
+    <div class="automation-lock"><span>HUMAN GATE</span><strong>Nothing sends automatically</strong><small>Approved messages are staged only.</small></div>
+</div>
+
+<div class="automation-stats">
+    <div><span>Pending approval</span><strong>{{ pending|length }}</strong></div>
+    <div><span>Recent decisions</span><strong>{{ recent|length }}</strong></div>
+    <div><span>Live sending</span><strong class="status-off">OFF</strong></div>
+</div>
+
+<div class="ops-section-title"><div><span class="section-kicker">APPROVAL QUEUE</span><h3>Customer messages</h3></div><span class="count-bubble">{{ pending|length }}</span></div>
+{% if pending %}
+<div class="message-approval-list">
+{% for message in pending %}
+<div class="message-approval-card">
+    <div class="message-approval-head"><div><strong>{{ message.caller_name or 'Unknown Lead' }}</strong><span>{{ message.business_name or 'Unassigned client' }} · {{ message.channel }}</span></div><span class="approval-pill">Needs approval</span></div>
+    <div class="message-bubble">{{ message.body }}</div>
+    <div class="message-meta"><span>To {{ message.recipient }}</span><span>{{ message.created_at }}</span></div>
+    <div class="message-actions">
+        <a class="btn secondary" href="{{ url_for('lead_detail', lead_id=message.lead_id) }}">Open Lead</a>
+        <form method="POST" action="{{ url_for('discard_message', message_id=message.id) }}"><button class="btn danger-soft" type="submit">Discard</button></form>
+        <form method="POST" action="{{ url_for('approve_message', message_id=message.id) }}"><button class="btn" type="submit">Approve</button></form>
+    </div>
+</div>
+{% endfor %}
+</div>
+{% else %}
+<div class="panel clear-state"><span class="clear-check">✓</span><div><strong>Approval queue is clear</strong><p>Draft a follow-up from a lead and it will land here for review.</p></div></div>
+{% endif %}
+
+{% if recent %}
+<div class="ops-section-title subdued"><div><span class="section-kicker">AUDIT TRAIL</span><h3>Recent decisions</h3></div></div>
+<div class="automation-history">
+{% for message in recent %}
+<div><span class="message-status {{ message.status|lower|replace(' ', '-') }}">{{ message.status }}</span><strong>{{ message.caller_name or 'Unknown Lead' }}</strong><p>{{ message.body }}</p><small>{{ message.business_name or 'Unassigned client' }} · {{ message.created_at }}</small></div>
+{% endfor %}
+</div>
+{% endif %}
+{% endblock %}

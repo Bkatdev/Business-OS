@@ -180,28 +180,6 @@
         <nav class="sidebar-nav">
 
             <a
-                class="{% if request.endpoint in ['schedule', 'create_appointment', 'cancel_appointment'] %}
-                    active
-                {% endif %}"
-                href="{{ url_for('schedule') }}"
-                title="Schedule"
-            >
-                <span class="nav-icon">◫</span>
-                <span class="nav-label">Schedule</span>
-            </a>
-
-            <a
-                class="{% if request.endpoint in ['automation_center', 'queue_lead_message', 'approve_message', 'discard_message'] %}
-                    active
-                {% endif %}"
-                href="{{ url_for('automation_center') }}"
-                title="Automation"
-            >
-                <span class="nav-icon">⚡</span>
-                <span class="nav-label">Automation</span>
-            </a>
-
-            <a
                 class="{% if request.endpoint == 'approvals' %}
                     active
                 {% endif %}"
@@ -258,7 +236,7 @@
             </div>
 
             <div class="version">
-                Business OS · v4
+                Business OS · v3
             </div>
 
         </div>

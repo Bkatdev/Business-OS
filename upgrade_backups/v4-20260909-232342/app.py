@@ -17,7 +17,6 @@ from services.prospect_finder import discover
 from services.scoring import opportunity_analysis
 from services.website_auditor import audit_batch, audit_business_by_id
 from services.lead_triage import triage_lead
-from services.operations import appointment_state, end_from_duration, suggested_follow_up
 
 app = Flask(__name__)
 app.secret_key = "business-os-local-v2"
@@ -231,23 +230,6 @@ def dashboard():
         """
     ).fetchall()
 
-    today_appointments = conn.execute(
-        """
-        SELECT COUNT(*)
-        FROM appointments
-        WHERE status = 'Scheduled'
-          AND date(start_at) = date('now', 'localtime')
-        """
-    ).fetchone()[0]
-
-    pending_messages = conn.execute(
-        """
-        SELECT COUNT(*)
-        FROM outbound_messages
-        WHERE status = 'Pending Approval'
-        """
-    ).fetchone()[0]
-
     conn.close()
 
     businesses = businesses_with_analysis(rows)
@@ -321,8 +303,6 @@ def dashboard():
         action_queue=action_queue,
         action_queue_total=action_queue_total,
         top_action=top_action,
-        today_appointments=today_appointments,
-        pending_messages=pending_messages,
         pipeline=pipeline,
         pipeline_max=pipeline_max,
     )
@@ -1275,27 +1255,6 @@ def lead_detail(lead_id):
         (lead_id,),
     ).fetchall()
 
-    appointments = conn.execute(
-        """
-        SELECT *
-        FROM appointments
-        WHERE lead_id = ?
-        ORDER BY start_at DESC, id DESC
-        """,
-        (lead_id,),
-    ).fetchall()
-
-    messages = conn.execute(
-        """
-        SELECT *
-        FROM outbound_messages
-        WHERE lead_id = ?
-        ORDER BY id DESC
-        LIMIT 8
-        """,
-        (lead_id,),
-    ).fetchall()
-
     conn.close()
 
     triage = triage_lead(
@@ -1313,9 +1272,6 @@ def lead_detail(lead_id):
         triage=triage,
         activities=activities,
         notes=notes,
-        appointments=appointments,
-        messages=messages,
-        suggested_message=suggested_follow_up(lead),
     )
 
 LEAD_STATUSES = [
@@ -1642,30 +1598,6 @@ def client_operations(bid):
         (bid,),
     ).fetchall()
 
-    appointment_rows = conn.execute(
-        """
-        SELECT appointments.*, leads.caller_name, leads.phone
-        FROM appointments
-        LEFT JOIN leads ON leads.id = appointments.lead_id
-        WHERE appointments.business_id = ?
-        ORDER BY appointments.start_at ASC
-        """,
-        (bid,),
-    ).fetchall()
-
-    pending_messages = conn.execute(
-        """
-        SELECT outbound_messages.*, leads.caller_name
-        FROM outbound_messages
-        LEFT JOIN leads ON leads.id = outbound_messages.lead_id
-        WHERE outbound_messages.business_id = ?
-          AND outbound_messages.status = 'Pending Approval'
-        ORDER BY outbound_messages.id DESC
-        LIMIT 6
-        """,
-        (bid,),
-    ).fetchall()
-
     conn.close()
 
     open_leads = [lead for lead in leads if lead["status"] not in ("Won", "Lost")]
@@ -1690,8 +1622,6 @@ def client_operations(bid):
         urgent_count=urgent_count,
         won_count=won_count,
         win_rate=win_rate,
-        schedule=appointment_state(appointment_rows),
-        pending_messages=pending_messages,
     )
 
 
@@ -1721,217 +1651,6 @@ def update_client_retell_agent(bid):
 
     flash("Receptionist mapping updated.", "success")
     return redirect(url_for("client_operations", bid=bid))
-
-
-@app.route("/schedule")
-def schedule():
-    conn = connect()
-    rows = conn.execute(
-        """
-        SELECT appointments.*, leads.caller_name, leads.phone,
-               businesses.name AS business_name
-        FROM appointments
-        LEFT JOIN leads ON leads.id = appointments.lead_id
-        LEFT JOIN businesses ON businesses.id = appointments.business_id
-        ORDER BY appointments.start_at ASC
-        """
-    ).fetchall()
-    conn.close()
-    return render_template("schedule.html", schedule=appointment_state(rows))
-
-
-@app.route("/automation")
-def automation_center():
-    conn = connect()
-    pending = conn.execute(
-        """
-        SELECT outbound_messages.*, leads.caller_name, businesses.name AS business_name
-        FROM outbound_messages
-        LEFT JOIN leads ON leads.id = outbound_messages.lead_id
-        LEFT JOIN businesses ON businesses.id = outbound_messages.business_id
-        WHERE outbound_messages.status = 'Pending Approval'
-        ORDER BY outbound_messages.id DESC
-        """
-    ).fetchall()
-    recent = conn.execute(
-        """
-        SELECT outbound_messages.*, leads.caller_name, businesses.name AS business_name
-        FROM outbound_messages
-        LEFT JOIN leads ON leads.id = outbound_messages.lead_id
-        LEFT JOIN businesses ON businesses.id = outbound_messages.business_id
-        WHERE outbound_messages.status != 'Pending Approval'
-        ORDER BY outbound_messages.id DESC
-        LIMIT 20
-        """
-    ).fetchall()
-    conn.close()
-    return render_template("automation.html", pending=pending, recent=recent)
-
-
-@app.route("/lead/<int:lead_id>/appointment", methods=["POST"])
-def create_appointment(lead_id):
-    start_at = request.form.get("start_at", "").strip()
-    duration_minutes = request.form.get("duration_minutes", "60").strip()
-    notes = request.form.get("appointment_notes", "").strip()
-
-    if not start_at:
-        flash("Choose a date and time for the estimate.", "error")
-        return redirect(url_for("lead_detail", lead_id=lead_id))
-
-    conn = connect()
-    lead = conn.execute("SELECT * FROM leads WHERE id = ?", (lead_id,)).fetchone()
-    if lead is None:
-        conn.close()
-        return render_template("404.html"), 404
-
-    timestamp = now_iso()
-    end_at = end_from_duration(start_at, duration_minutes)
-    conn.execute(
-        """
-        INSERT INTO appointments (
-            business_id, lead_id, start_at, end_at, status,
-            service_type, address, notes, source, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, 'Scheduled', ?, ?, ?, 'Business OS', ?, ?)
-        """,
-        (lead["business_id"], lead_id, start_at, end_at,
-         lead["service_type"] or "Estimate", lead["address"] or "",
-         notes, timestamp, timestamp),
-    )
-    conn.execute(
-        """
-        UPDATE leads
-        SET status = 'Estimate Scheduled', appointment_status = 'Scheduled',
-            next_follow_up_at = '', updated_at = ?
-        WHERE id = ?
-        """,
-        (timestamp, lead_id),
-    )
-    conn.execute(
-        """
-        INSERT INTO lead_activities (lead_id, activity_type, title, details, created_at)
-        VALUES (?, 'Appointment', 'Estimate scheduled', ?, ?)
-        """,
-        (lead_id, start_at, timestamp),
-    )
-    conn.commit()
-    conn.close()
-    flash("Estimate added to the schedule.", "success")
-    return redirect(url_for("lead_detail", lead_id=lead_id))
-
-
-@app.route("/appointment/<int:appointment_id>/cancel", methods=["POST"])
-def cancel_appointment(appointment_id):
-    conn = connect()
-    appointment = conn.execute("SELECT * FROM appointments WHERE id = ?", (appointment_id,)).fetchone()
-    if appointment is None:
-        conn.close()
-        return render_template("404.html"), 404
-    timestamp = now_iso()
-    conn.execute("UPDATE appointments SET status = 'Cancelled', updated_at = ? WHERE id = ?", (timestamp, appointment_id))
-    conn.execute(
-        """
-        UPDATE leads
-        SET status = CASE WHEN status = 'Estimate Scheduled' THEN 'Contacted' ELSE status END,
-            appointment_status = 'Not Scheduled', updated_at = ?
-        WHERE id = ?
-        """,
-        (timestamp, appointment["lead_id"]),
-    )
-    conn.execute(
-        """
-        INSERT INTO lead_activities (lead_id, activity_type, title, details, created_at)
-        VALUES (?, 'Appointment', 'Estimate cancelled', ?, ?)
-        """,
-        (appointment["lead_id"], appointment["start_at"], timestamp),
-    )
-    conn.commit()
-    conn.close()
-    flash("Estimate cancelled and lead returned to follow-up.", "success")
-    return redirect(request.referrer or url_for("schedule"))
-
-
-@app.route("/lead/<int:lead_id>/message", methods=["POST"])
-def queue_lead_message(lead_id):
-    body = request.form.get("message_body", "").strip()
-    if not body:
-        flash("Write a message before queuing it.", "error")
-        return redirect(url_for("lead_detail", lead_id=lead_id))
-    conn = connect()
-    lead = conn.execute("SELECT * FROM leads WHERE id = ?", (lead_id,)).fetchone()
-    if lead is None:
-        conn.close()
-        return render_template("404.html"), 404
-    if not (lead["phone"] or "").strip():
-        conn.close()
-        flash("This lead has no phone number, so an SMS draft cannot be queued.", "error")
-        return redirect(url_for("lead_detail", lead_id=lead_id))
-    timestamp = now_iso()
-    conn.execute(
-        """
-        INSERT INTO outbound_messages (business_id, lead_id, channel, recipient, body, status, automation_key, created_at)
-        VALUES (?, ?, 'SMS', ?, ?, 'Pending Approval', 'manual_follow_up', ?)
-        """,
-        (lead["business_id"], lead_id, lead["phone"], body, timestamp),
-    )
-    conn.execute(
-        """
-        INSERT INTO lead_activities (lead_id, activity_type, title, details, created_at)
-        VALUES (?, 'Message', 'SMS queued for approval', ?, ?)
-        """,
-        (lead_id, body, timestamp),
-    )
-    conn.commit()
-    conn.close()
-    flash("SMS draft queued for approval. Nothing was sent.", "success")
-    return redirect(url_for("lead_detail", lead_id=lead_id))
-
-
-@app.route("/message/<int:message_id>/approve", methods=["POST"])
-def approve_message(message_id):
-    conn = connect()
-    message = conn.execute("SELECT * FROM outbound_messages WHERE id = ?", (message_id,)).fetchone()
-    if message is None:
-        conn.close()
-        return render_template("404.html"), 404
-    if message["status"] != "Pending Approval":
-        conn.close()
-        flash("That message is no longer pending approval.", "error")
-        return redirect(request.referrer or url_for("automation_center"))
-    timestamp = now_iso()
-    conn.execute("UPDATE outbound_messages SET status = 'Approved', approved_at = ? WHERE id = ?", (timestamp, message_id))
-    conn.execute(
-        """
-        INSERT INTO lead_activities (lead_id, activity_type, title, details, created_at)
-        VALUES (?, 'Message', 'SMS approved', 'Approved and ready for a future messaging provider.', ?)
-        """,
-        (message["lead_id"], timestamp),
-    )
-    conn.commit()
-    conn.close()
-    flash("Message approved. It is staged, not sent yet.", "success")
-    return redirect(request.referrer or url_for("automation_center"))
-
-
-@app.route("/message/<int:message_id>/discard", methods=["POST"])
-def discard_message(message_id):
-    conn = connect()
-    message = conn.execute("SELECT * FROM outbound_messages WHERE id = ?", (message_id,)).fetchone()
-    if message is None:
-        conn.close()
-        return render_template("404.html"), 404
-    timestamp = now_iso()
-    conn.execute("UPDATE outbound_messages SET status = 'Discarded' WHERE id = ?", (message_id,))
-    conn.execute(
-        """
-        INSERT INTO lead_activities (lead_id, activity_type, title, details, created_at)
-        VALUES (?, 'Message', 'SMS draft discarded', '', ?)
-        """,
-        (message["lead_id"], timestamp),
-    )
-    conn.commit()
-    conn.close()
-    flash("Message draft discarded.", "success")
-    return redirect(request.referrer or url_for("automation_center"))
 
 
 @app.route("/prospects/export")

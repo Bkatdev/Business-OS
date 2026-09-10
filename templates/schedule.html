@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Schedule · Business OS{% endblock %}
+{% block heading %}Schedule{% endblock %}
+{% block actions %}<a class="btn" href="{{ url_for('leads') }}">Schedule from a Lead</a>{% endblock %}
+{% block content %}
+<div class="ops-page-head">
+    <div><span class="section-kicker">FIELD OPERATIONS</span><h2>Estimate Schedule</h2><p>One board for every confirmed estimate. Scheduling a lead here changes the CRM state automatically.</p></div>
+    <div class="ops-head-stat"><span>Today</span><strong>{{ schedule.today|length }}</strong><small>scheduled estimates</small></div>
+</div>
+
+{% if schedule.today %}
+<div class="ops-section-title"><div><span class="section-kicker">TODAY</span><h3>On deck</h3></div></div>
+<div class="appointment-grid featured">
+{% for item in schedule.today %}
+<a class="appointment-card today" href="{{ url_for('lead_detail', lead_id=item['lead_id']) }}">
+    <div class="appointment-time"><strong>{{ item.display_time }}</strong><span>{{ item.display_date }}</span></div>
+    <div class="appointment-main"><div class="appointment-top"><strong>{{ item.caller_name or 'Unknown Caller' }}</strong><span class="status-pill">Scheduled</span></div><h4>{{ item.service_type or 'Estimate' }}</h4><p>{{ item.address or 'Address not provided' }}</p><small>{{ item.business_name or 'Unassigned client' }}{% if item.phone %} · {{ item.phone }}{% endif %}</small></div>
+    <span class="appointment-arrow">→</span>
+</a>
+{% endfor %}
+</div>
+{% endif %}
+
+<div class="ops-section-title"><div><span class="section-kicker">UPCOMING</span><h3>Next estimates</h3></div><span class="count-bubble">{{ schedule.upcoming|length }}</span></div>
+{% if schedule.upcoming %}
+<div class="appointment-grid">
+{% for item in schedule.upcoming %}
+<a class="appointment-card" href="{{ url_for('lead_detail', lead_id=item['lead_id']) }}">
+    <div class="appointment-time"><strong>{{ item.display_time }}</strong><span>{{ item.display_date }}</span></div>
+    <div class="appointment-main"><div class="appointment-top"><strong>{{ item.caller_name or 'Unknown Caller' }}</strong><span class="status-pill">{{ item.status }}</span></div><h4>{{ item.service_type or 'Estimate' }}</h4><p>{{ item.address or 'Address not provided' }}</p><small>{{ item.business_name or 'Unassigned client' }}</small></div>
+    <span class="appointment-arrow">→</span>
+</a>
+{% endfor %}
+</div>
+{% else %}
+<div class="panel clear-state"><span class="clear-check">✓</span><div><strong>Schedule is clear</strong><p>Schedule an estimate from any lead and it will appear here.</p></div></div>
+{% endif %}
+
+{% if schedule.past %}
+<div class="ops-section-title subdued"><div><span class="section-kicker">HISTORY</span><h3>Past & cancelled</h3></div></div>
+<div class="compact-history">
+{% for item in schedule.past[:12] %}
+<a href="{{ url_for('lead_detail', lead_id=item['lead_id']) }}"><span>{{ item.display_date if item.display_date else item.start_at }}</span><strong>{{ item.caller_name or 'Unknown Caller' }}</strong><small>{{ item.status }}</small></a>
+{% endfor %}
+</div>
+{% endif %}
+{% endblock %}
