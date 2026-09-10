@@ -28,6 +28,7 @@ from services.governance import classify_inbound, quarantine
 from services.security import verify_retell_signature
 from services.version import VERSION, RELEASE_NAME, BUILD_ID
 from services.product_foundation import ensure_product_schema, readiness_for_business, save_profile, activate_business, client_product_view, attention_queue
+from services.business_config import ensure_business_config_schema, configuration_view, add_service, toggle_service, add_intake_question, toggle_intake_question
 from services.system_health import build_health_report
 from services.control_plane import ensure_control_plane_schema, control_plane_overview, command_center_summary, review_improvement, ledger_event
 from services.reliability import (
@@ -1829,6 +1830,65 @@ def activate_client(bid):
     return redirect(url_for("client_onboarding", bid=bid))
 
 
+@app.route("/client/<int:bid>/configuration")
+def business_configuration(bid):
+    conn = connect()
+    ensure_product_schema(conn)
+    business = conn.execute("SELECT * FROM businesses WHERE id=?", (bid,)).fetchone()
+    if business is None:
+        conn.close()
+        return render_template("404.html"), 404
+    config = configuration_view(conn, bid)
+    readiness = readiness_for_business(conn, business)
+    conn.close()
+    return render_template("business_configuration.html", business=business, config=config, readiness=readiness)
+
+
+@app.route("/client/<int:bid>/configuration/services", methods=["POST"])
+def add_business_service(bid):
+    ok, message = add_service(
+        bid,
+        request.form.get("name", ""),
+        request.form.get("description", ""),
+        public=request.form.get("public") == "1",
+        bookable=request.form.get("bookable") == "1",
+        requires_estimate=request.form.get("requires_estimate") == "1",
+    )
+    flash(message, "success" if ok else "error")
+    return redirect(url_for("business_configuration", bid=bid))
+
+
+@app.route("/client/<int:bid>/configuration/services/<int:service_id>/toggle", methods=["POST"])
+def toggle_business_service(bid, service_id):
+    ok, message = toggle_service(bid, service_id)
+    flash(message, "success" if ok else "error")
+    return redirect(url_for("business_configuration", bid=bid))
+
+
+@app.route("/client/<int:bid>/configuration/intake", methods=["POST"])
+def add_business_intake_question(bid):
+    raw_service = request.form.get("service_id", "").strip()
+    service_id = int(raw_service) if raw_service.isdigit() else None
+    options = [x for x in request.form.get("options", "").splitlines()]
+    ok, message = add_intake_question(
+        bid,
+        request.form.get("label", ""),
+        request.form.get("question_type", "short_text"),
+        required=request.form.get("required") == "1",
+        service_id=service_id,
+        options=options,
+    )
+    flash(message, "success" if ok else "error")
+    return redirect(url_for("business_configuration", bid=bid))
+
+
+@app.route("/client/<int:bid>/configuration/intake/<int:question_id>/toggle", methods=["POST"])
+def toggle_business_intake_question(bid, question_id):
+    ok, message = toggle_intake_question(bid, question_id)
+    flash(message, "success" if ok else "error")
+    return redirect(url_for("business_configuration", bid=bid))
+
+
 @app.route("/attention")
 def attention_center():
     raw = request.args.get("business_id", "").strip()
@@ -2442,6 +2502,7 @@ if __name__ == "__main__":
     init_db()
     conn = connect()
     ensure_product_schema(conn)
+    ensure_business_config_schema(conn)
     ensure_control_plane_schema(conn)
     conn.close()
     print(f"Business OS {VERSION} · {RELEASE_NAME} · {BUILD_ID}")

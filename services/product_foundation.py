@@ -1,5 +1,6 @@
 import json
 from services.db import connect, now_iso
+from services.business_config import ensure_business_config_schema, list_services
 
 REQUIRED_PROFILE_FIELDS = (
     ("services", "Services", "What the business actually offers"),
@@ -41,6 +42,7 @@ def ensure_product_schema(conn=None):
             FOREIGN KEY (business_id) REFERENCES businesses(id)
         )
     """)
+    ensure_business_config_schema(conn)
     conn.commit()
     if own:
         conn.close()
@@ -54,7 +56,7 @@ def _profile(conn, business_id):
     return {
         "business_id": business_id, "services": "", "business_hours": "", "service_area": "",
         "emergency_rules": "", "escalation_instructions": "", "scheduling_policy": "",
-        "messaging_tone": "Professional, warm, concise", "onboarding_notes": "", "updated_at": "",
+        "messaging_tone": "Professional, warm, concise", "onboarding_notes": "", "industry": "", "updated_at": "",
     }
 
 
@@ -63,8 +65,21 @@ def readiness_for_business(conn, business):
     profile = _profile(conn, b["id"])
     checks = []
     for key, label, help_text in REQUIRED_PROFILE_FIELDS:
-        ok = bool((profile.get(key) or "").strip())
+        if key == "services":
+            structured = list_services(conn, b["id"], include_inactive=False)
+            legacy_ok = bool((profile.get("services") or "").strip())
+            ok = bool(structured) or legacy_ok
+            if structured:
+                label = "Service catalog"
+                help_text = f"{len(structured)} active structured service(s) configured"
+            elif legacy_ok:
+                label = "Service catalog"
+                help_text = "Legacy service text exists; convert to structured services when convenient"
+        else:
+            ok = bool((profile.get(key) or "").strip())
         checks.append({"key": key, "label": label, "help": help_text, "ok": ok, "required": True})
+    industry_ok = bool((profile.get("industry") or "").strip() or (b.get("category") or "").strip())
+    checks.insert(0, {"key": "industry", "label": "Industry", "help": "Industry context selects guidance, never hard-coded behavior", "ok": industry_ok, "required": True})
     identity_ok = bool((b.get("name") or "").strip() and ((b.get("phone") or "").strip() or (b.get("email") or "").strip()))
     checks.insert(0, {"key": "identity", "label": "Business identity", "help": "Name plus a real contact channel", "ok": identity_ok, "required": True})
     routing_ok = bool((b.get("retell_agent_id") or "").strip())
@@ -79,20 +94,20 @@ def readiness_for_business(conn, business):
 def save_profile(business_id, values):
     conn = connect()
     ensure_product_schema(conn)
-    allowed = [x[0] for x in REQUIRED_PROFILE_FIELDS] + ["messaging_tone", "onboarding_notes"]
+    allowed = [x[0] for x in REQUIRED_PROFILE_FIELDS] + ["industry", "messaging_tone", "onboarding_notes"]
     cleaned = {k: (values.get(k) or "").strip() for k in allowed}
     conn.execute("""
         INSERT INTO client_profiles (
             business_id, services, business_hours, service_area, emergency_rules,
-            escalation_instructions, scheduling_policy, messaging_tone, onboarding_notes, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            escalation_instructions, scheduling_policy, messaging_tone, onboarding_notes, updated_at, industry
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(business_id) DO UPDATE SET
             services=excluded.services, business_hours=excluded.business_hours,
             service_area=excluded.service_area, emergency_rules=excluded.emergency_rules,
             escalation_instructions=excluded.escalation_instructions,
             scheduling_policy=excluded.scheduling_policy, messaging_tone=excluded.messaging_tone,
-            onboarding_notes=excluded.onboarding_notes, updated_at=excluded.updated_at
-    """, (business_id, cleaned["services"], cleaned["business_hours"], cleaned["service_area"], cleaned["emergency_rules"], cleaned["escalation_instructions"], cleaned["scheduling_policy"], cleaned["messaging_tone"], cleaned["onboarding_notes"], now_iso()))
+            onboarding_notes=excluded.onboarding_notes, updated_at=excluded.updated_at, industry=excluded.industry
+    """, (business_id, cleaned["services"], cleaned["business_hours"], cleaned["service_area"], cleaned["emergency_rules"], cleaned["escalation_instructions"], cleaned["scheduling_policy"], cleaned["messaging_tone"], cleaned["onboarding_notes"], now_iso(), cleaned["industry"]))
     conn.commit(); conn.close()
 
 

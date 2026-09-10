@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ business.name }} · Business OS{% endblock %}
 {% block heading %}Client Command Center{% endblock %}
-{% block actions %}<a class="btn secondary" href="{{ url_for('client_onboarding', bid=business.id) }}">Configure client</a><a class="btn" href="{{ url_for('attention_center', business_id=business.id) }}">Attention queue</a>{% endblock %}
+{% block actions %}<a class="btn secondary" href="{{ url_for('business_configuration', bid=business.id) }}">Configuration</a><a class="btn secondary" href="{{ url_for('client_onboarding', bid=business.id) }}">Profile</a><a class="btn" href="{{ url_for('attention_center', business_id=business.id) }}">Attention queue</a>{% endblock %}
 {% block content %}
 <div class="v9-client-hero">
   <div><span class="section-kicker">DIGITAL FRONT OFFICE</span><h2>{{ business.name }}</h2><p>{{ business.city }} · {{ business.category }}</p><div class="v9-chip-row"><span class="v9-chip">{{ product.stage }}</span><span class="v9-chip {{ 'good' if product.automation_enabled else '' }}">Automation {{ 'enabled' if product.automation_enabled else 'locked' }}</span><span class="v9-chip">{{ 'Receptionist mapped' if business.retell_agent_id else 'Receptionist not mapped' }}</span></div></div>

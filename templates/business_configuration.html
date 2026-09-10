@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Configuration · {{ business.name }} · Business OS{% endblock %}
+{% block heading %}Business Configuration{% endblock %}
+{% block actions %}<a class="btn secondary" href="{{ url_for('client_operations', bid=business.id) }}">Client command center</a><a class="btn" href="{{ url_for('client_onboarding', bid=business.id) }}">Business profile</a>{% endblock %}
+{% block content %}
+<div class="v9-client-hero compact">
+  <div>
+    <span class="section-kicker">SHARED BUSINESS TRUTH</span>
+    <h2>{{ business.name }}</h2>
+    <p>One industry-neutral configuration for the website, receptionist, intake, scheduling, and future automation. Adding configuration here does not change live behavior by itself.</p>
+    <div class="v9-chip-row"><span class="v9-chip">{{ config.profile.industry or business.category or 'Industry not set' }}</span><span class="v9-chip">{{ config.active_services }} active services</span><span class="v9-chip">{{ config.active_questions }} intake questions</span></div>
+  </div>
+  <div class="v9-readiness-ring"><strong>{{ readiness.score }}%</strong><span>READY</span><small>{{ readiness.passed }}/{{ readiness.total }} checks</small></div>
+</div>
+
+<div class="v9-two-col v103-config-grid">
+<section class="panel v9-panel">
+  <div class="v9-section-head"><div><span class="section-kicker">SERVICE CATALOG</span><h3>What this business actually offers</h3><p>Structured services become shared truth for future Website Studio, Receptionist Studio, intake, and scheduling.</p></div><span class="count-bubble">{{ config.active_services }}</span></div>
+  {% if config.services %}<div class="v103-list">
+    {% for service in config.services %}
+    <div class="v103-row {{ 'is-off' if not service.active else '' }}">
+      <div><strong>{{ service.name }}</strong><p>{{ service.description or 'No description yet.' }}</p><small>{{ 'Public' if service.public else 'Internal' }} · {{ 'Bookable' if service.bookable else 'Request only' }} · {{ 'Estimate first' if service.requires_estimate else 'No estimate requirement configured' }}</small></div>
+      <form method="POST" action="{{ url_for('toggle_business_service', bid=business.id, service_id=service.id) }}"><button class="btn secondary" type="submit">{{ 'Disable' if service.active else 'Enable' }}</button></form>
+    </div>
+    {% endfor %}
+  </div>{% else %}<div class="v9-empty"><strong>No structured services yet.</strong><span>Add only verified services. Nothing here is published or pushed to the receptionist automatically.</span></div>{% endif %}
+
+  <form method="POST" action="{{ url_for('add_business_service', bid=business.id) }}" class="v103-compact-form">
+    <label><span>Service name *</span><input name="name" maxlength="120" placeholder="e.g. Drain Cleaning" required></label>
+    <label><span>Description</span><input name="description" placeholder="Short verified description"></label>
+    <div class="v103-check-grid">
+      <label><input type="checkbox" name="public" value="1" checked> Public-facing</label>
+      <label><input type="checkbox" name="bookable" value="1"> Can be booked</label>
+      <label><input type="checkbox" name="requires_estimate" value="1" checked> Estimate first</label>
+    </div>
+    <button class="btn" type="submit">Add verified service</button>
+  </form>
+</section>
+
+<section class="panel v9-panel">
+  <div class="v9-section-head"><div><span class="section-kicker">INTAKE DEFINITION</span><h3>What Business OS needs to ask</h3><p>Questions are configuration only. Channels must explicitly opt into this schema before it can affect customer interactions.</p></div><span class="count-bubble">{{ config.active_questions }}</span></div>
+  {% if config.questions %}<div class="v103-list">
+    {% for question in config.questions %}
+    <div class="v103-row {{ 'is-off' if not question.active else '' }}">
+      <div><strong>{{ question.label }}</strong><p>{{ question.question_type|replace('_',' ')|title }} · {{ 'Required' if question.required else 'Optional' }}</p><small>{{ 'All services' if not question.service_name else question.service_name }}</small></div>
+      <form method="POST" action="{{ url_for('toggle_business_intake_question', bid=business.id, question_id=question.id) }}"><button class="btn secondary" type="submit">{{ 'Disable' if question.active else 'Enable' }}</button></form>
+    </div>
+    {% endfor %}
+  </div>{% else %}<div class="v9-empty"><strong>No intake questions yet.</strong><span>Use the same engine for any industry. The business configuration supplies the questions.</span></div>{% endif %}
+
+  <form method="POST" action="{{ url_for('add_business_intake_question', bid=business.id) }}" class="v103-compact-form">
+    <label><span>Question *</span><input name="label" maxlength="240" placeholder="e.g. Is water actively leaking?" required></label>
+    <div class="v103-form-pair"><label><span>Response type</span><select name="question_type">{% for qt in config.question_types %}<option value="{{ qt }}">{{ qt|replace('_',' ')|title }}</option>{% endfor %}</select></label><label><span>Applies to service</span><select name="service_id"><option value="">All services</option>{% for service in config.services if service.active %}<option value="{{ service.id }}">{{ service.name }}</option>{% endfor %}</select></label></div>
+    <label><span>Choice options</span><textarea name="options" rows="3" placeholder="Only for Choice type. One option per line."></textarea></label>
+    <label class="v103-inline-check"><input type="checkbox" name="required" value="1"> Required during intake</label>
+    <button class="btn" type="submit">Add intake question</button>
+  </form>
+</section>
+</div>
+
+<section class="panel v9-panel section-gap">
+  <div class="v9-section-head"><div><span class="section-kicker">WHY THIS MATTERS</span><h3>One core. Many businesses.</h3><p>Business OS does not contain a tree-service workflow, plumbing workflow, or dental workflow here. It contains a universal service and intake model that each business configures truthfully.</p></div></div>
+  <div class="v9-three-col">
+    <div><h4>Website Studio</h4><p class="muted">Will read verified services and intake configuration instead of inventing its own company facts.</p></div>
+    <div><h4>Receptionist Studio</h4><p class="muted">Will use the same source of truth so phone and web experiences stay consistent.</p></div>
+    <div><h4>Control Plane</h4><p class="muted">Remains the authority for whether configured actions may actually execute.</p></div>
+  </div>
+</section>
+{% endblock %}
