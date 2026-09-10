@@ -75,6 +75,8 @@ def inject_global_counts():
 
 @app.route("/")
 def dashboard():
+    from services.action_queue import build_action_queue
+
     conn = connect()
 
     rows = conn.execute(
@@ -210,6 +212,24 @@ def dashboard():
         """
     ).fetchall()
 
+    action_queue_rows = conn.execute(
+        """
+        SELECT
+            leads.*,
+            businesses.name AS business_name,
+            (
+                SELECT MAX(lead_activities.created_at)
+                FROM lead_activities
+                WHERE lead_activities.lead_id = leads.id
+            ) AS last_activity_at
+        FROM leads
+        LEFT JOIN businesses
+            ON businesses.id = leads.business_id
+        WHERE leads.status NOT IN ('Won', 'Lost')
+        ORDER BY leads.id DESC
+        """
+    ).fetchall()
+
     conn.close()
 
     businesses = businesses_with_analysis(rows)
@@ -258,6 +278,10 @@ def dashboard():
         + [1]
     )
 
+    action_queue_total = len(action_queue_rows)
+    action_queue = build_action_queue(action_queue_rows, limit=8)
+    top_action = action_queue[0] if action_queue else None
+
     return render_template(
         "dashboard.html",
         businesses=businesses[:8],
@@ -276,6 +300,9 @@ def dashboard():
         conversion_rate=conversion_rate,
         recent_leads=recent_leads,
         urgent_leads=urgent_leads,
+        action_queue=action_queue,
+        action_queue_total=action_queue_total,
+        top_action=top_action,
         pipeline=pipeline,
         pipeline_max=pipeline_max,
     )

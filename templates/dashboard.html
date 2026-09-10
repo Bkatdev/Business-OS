@@ -228,6 +228,54 @@ Command Center
 
     <div class="dashboard-main">
 
+        <!-- BUSINESS OS ACTION QUEUE -->
+        <div class="panel command-panel action-queue-panel">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">NEXT ACTIONS</span>
+                    <h3>Action Queue</h3>
+                </div>
+                <span class="count-bubble">{{ action_queue_total }}</span>
+            </div>
+
+            {% if top_action %}
+            <div class="action-queue-summary">
+                <span class="action-summary-label">DO THIS FIRST</span>
+                <strong>{{ top_action["next_action"] }}</strong>
+                <span>{{ top_action["caller_name"] }} · {{ top_action["service_type"] }}</span>
+            </div>
+            {% endif %}
+
+            {% if action_queue %}
+            <div class="action-queue-list">
+                {% for item in action_queue %}
+                <a class="action-queue-item" href="{{ url_for('lead_detail', lead_id=item['id']) }}">
+                    <div class="action-rank">{{ loop.index }}</div>
+                    <div class="action-queue-body">
+                        <div class="action-queue-title">
+                            <strong>{{ item["caller_name"] }}</strong>
+                            <span class="action-level {{ item['level_class'] }}">{{ item["level"] }}</span>
+                        </div>
+                        <div class="action-service">{{ item["service_type"] }} · {{ item["status"] }}</div>
+                        <div class="action-next">{{ item["next_action"] }}</div>
+                        <div class="action-reason">{{ item["reason"] }}</div>
+                        <div class="action-age">{{ item["age_label"] }}</div>
+                    </div>
+                    <div class="action-arrow">→</div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="clear-state">
+                <span class="clear-check">✓</span>
+                <div>
+                    <strong>Action queue is clear</strong>
+                    <p>There are no open leads requiring attention.</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
         <div class="panel command-panel">
 
             <div class="panel-heading">
