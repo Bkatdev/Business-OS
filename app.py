@@ -16,7 +16,7 @@ from services.db import connect, init_db, now_iso
 from services.prospect_finder import discover
 from services.scoring import opportunity_analysis
 from services.website_auditor import audit_batch, audit_business_by_id
-
+from services.lead_triage import triage_lead
 
 app = Flask(__name__)
 app.secret_key = "business-os-local-v2"
@@ -928,13 +928,112 @@ def lead_detail(lead_id):
 
     conn.close()
 
+    triage = triage_lead(
+        priority=lead["priority"],
+        safety_flag=lead["safety_flag"],
+        preferred_time=lead["preferred_time"],
+        appointment_status=lead["appointment_status"],
+    )
+
     return render_template(
         "lead_detail.html",
         lead=lead,
         call=call,
+        triage=triage,
     )
 
+LEAD_STATUSES = [
+    "New",
+    "Contacted",
+    "Estimate Scheduled",
+    "Won",
+    "Lost",
+]
 
+
+@app.route(
+    "/lead/<int:lead_id>/status",
+    methods=["POST"],
+)
+def update_lead_status(lead_id):
+    status = request.form.get(
+        "status",
+        "New",
+    ).strip()
+
+    if status not in LEAD_STATUSES:
+        flash(
+            "Invalid lead status.",
+            "error",
+        )
+        return redirect(
+            url_for(
+                "lead_detail",
+                lead_id=lead_id,
+            )
+        )
+
+    conn = connect()
+
+    lead = conn.execute(
+        """
+        SELECT id
+        FROM leads
+        WHERE id = ?
+        """,
+        (lead_id,),
+    ).fetchone()
+
+    if lead is None:
+        conn.close()
+        return render_template("404.html"), 404
+
+    appointment_status = None
+
+    if status == "Estimate Scheduled":
+        appointment_status = "Scheduled"
+
+    if appointment_status:
+        conn.execute(
+            """
+            UPDATE leads
+            SET status = ?,
+                appointment_status = ?
+            WHERE id = ?
+            """,
+            (
+                status,
+                appointment_status,
+                lead_id,
+            ),
+        )
+    else:
+        conn.execute(
+            """
+            UPDATE leads
+            SET status = ?
+            WHERE id = ?
+            """,
+            (
+                status,
+                lead_id,
+            ),
+        )
+
+    conn.commit()
+    conn.close()
+
+    flash(
+        f"Lead moved to {status}.",
+        "success",
+    )
+
+    return redirect(
+        url_for(
+            "lead_detail",
+            lead_id=lead_id,
+        )
+    )
 
 
 @app.route("/calls")
