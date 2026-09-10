@@ -357,6 +357,24 @@ def init_db():
         "CREATE INDEX IF NOT EXISTS idx_automation_executions_status ON automation_executions(status, created_at)"
     )
 
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS system_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            severity TEXT NOT NULL DEFAULT 'Info',
+            event_type TEXT NOT NULL,
+            title TEXT NOT NULL,
+            details TEXT NOT NULL DEFAULT '',
+            business_id INTEGER,
+            lead_id INTEGER,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    con.execute(
+        "CREATE INDEX IF NOT EXISTS idx_system_events_created ON system_events(created_at)"
+    )
+
     existing = {
         row["name"]
         for row in con.execute("PRAGMA table_info(businesses)")

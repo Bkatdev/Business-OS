@@ -18,7 +18,8 @@ from services.scoring import opportunity_analysis
 from services.website_auditor import audit_batch, audit_business_by_id
 from services.lead_triage import triage_lead
 from services.operations import appointment_state, end_from_duration, suggested_follow_up
-from services.automation_engine import execute_sms
+from services.automation_engine import execute_sms, validate_sms_message
+from services.system_health import build_health_report
 
 app = Flask(__name__)
 app.secret_key = "business-os-local-v2"
@@ -1724,6 +1725,17 @@ def update_client_retell_agent(bid):
     return redirect(url_for("client_operations", bid=bid))
 
 
+@app.route("/system-health")
+def system_health():
+    conn = connect()
+    report = build_health_report(conn)
+    recent_events = conn.execute(
+        "SELECT * FROM system_events ORDER BY id DESC LIMIT 25"
+    ).fetchall()
+    conn.close()
+    return render_template("system_health.html", report=report, recent_events=recent_events)
+
+
 @app.route("/schedule")
 def schedule():
     conn = connect()
@@ -1895,6 +1907,15 @@ def queue_lead_message(lead_id):
         conn.close()
         flash("This lead has no phone number, so an SMS draft cannot be queued.", "error")
         return redirect(url_for("lead_detail", lead_id=lead_id))
+    if not lead["business_id"]:
+        conn.close()
+        flash("Assign this lead to a client before preparing customer communication.", "error")
+        return redirect(url_for("lead_detail", lead_id=lead_id))
+    owner = conn.execute("SELECT id FROM businesses WHERE id = ? AND status = 'Client'", (lead["business_id"],)).fetchone()
+    if owner is None:
+        conn.close()
+        flash("This lead is not attached to an active client. Messaging is locked.", "error")
+        return redirect(url_for("lead_detail", lead_id=lead_id))
     timestamp = now_iso()
     conn.execute(
         """
@@ -1926,6 +1947,17 @@ def approve_message(message_id):
     if message["status"] != "Pending Approval":
         conn.close()
         flash("That message is no longer pending approval.", "error")
+        return redirect(request.referrer or url_for("automation_center"))
+    # Approval uses the same tenant/recipient guardrails as execution.
+    original_status = message["status"]
+    conn.execute("UPDATE outbound_messages SET status = 'Approved' WHERE id = ?", (message_id,))
+    staged = conn.execute("SELECT * FROM outbound_messages WHERE id = ?", (message_id,)).fetchone()
+    valid, reason = validate_sms_message(conn, staged)
+    conn.execute("UPDATE outbound_messages SET status = ? WHERE id = ?", (original_status, message_id))
+    if not valid:
+        conn.commit()
+        conn.close()
+        flash("Approval blocked: " + reason, "error")
         return redirect(request.referrer or url_for("automation_center"))
     timestamp = now_iso()
     conn.execute("UPDATE outbound_messages SET status = 'Approved', approved_at = ? WHERE id = ?", (timestamp, message_id))

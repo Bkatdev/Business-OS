@@ -4,7 +4,7 @@
 {% block content %}
 <div class="auto-command-hero">
   <div class="auto-command-copy">
-    <div class="eyebrow-row"><span class="section-kicker">EXECUTION ENGINE</span><span class="live-dot"><i></i> SYSTEM HEALTHY</span></div>
+    <div class="eyebrow-row"><span class="section-kicker">EXECUTION ENGINE</span><a class="live-dot health-link" href="{{ url_for('system_health') }}"><i></i> OPEN SYSTEM HEALTH</a></div>
     <h2>Automation with a seatbelt.</h2>
     <p>Review customer communication, approve it, then run the complete delivery pipeline in simulation before a live provider ever gets permission to send.</p>
     <div class="auto-flow"><span>Draft</span><b>→</b><span>Approve</span><b>→</b><span>Validate</span><b>→</b><span>Execute</span><b>→</b><span>Audit</span></div>
@@ -65,7 +65,7 @@
     <div class="control-panel">
       <span class="section-kicker">SAFETY CONTROLS</span><h3>Live delivery lock</h3>
       <div class="safety-row"><span>Human approval</span><strong>Required</strong></div>
-      <div class="safety-row"><span>Recipient validation</span><strong>On</strong></div>
+      <div class="safety-row"><span>Client ownership</span><strong>Required</strong></div><div class="safety-row"><span>Recipient validation</span><strong>Strict</strong></div>
       <div class="safety-row"><span>Execution logging</span><strong>On</strong></div>
       <div class="safety-row"><span>Live SMS provider</span><strong class="status-off">Locked</strong></div>
       <p class="control-note">We will only unlock live sending after provider credentials, consent rules, failure handling, and a kill switch are configured.</p>

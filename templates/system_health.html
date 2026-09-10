@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}System Health · Business OS{% endblock %}
+{% block heading %}Reliability Center{% endblock %}
+{% block content %}
+<div class="health-hero {{ report.status|lower }}">
+  <div><span class="section-kicker">RELIABILITY LAYER</span><h2>{{ report.status == 'Healthy' and 'Everything important is behaving.' or 'A few things need attention.' }}</h2><p>This page is designed for a five-minute daily check. Business OS fails closed when ownership or recipient safety is uncertain.</p></div>
+  <div class="health-score"><strong>{{ report.healthy_checks }}/{{ report.total_checks }}</strong><span>checks passing</span><b>{{ report.status }}</b></div>
+</div>
+<div class="health-metrics">
+ <div><span>Unassigned leads</span><strong>{{ report.unassigned_leads }}</strong><small>Can be reviewed, never auto-sent</small></div>
+ <div><span>Failed messages</span><strong>{{ report.failed_messages }}</strong><small>Needs operator attention</small></div>
+ <div><span>Blocked · 24h</span><strong>{{ report.blocked_24h }}</strong><small>Safety engine interventions</small></div>
+ <div><span>Client mappings</span><strong>{{ report.mapped_clients }}/{{ report.clients }}</strong><small>Receptionists mapped to clients</small></div>
+</div>
+<div class="health-grid">
+ <section class="panel health-checks"><div class="ops-section-title"><div><span class="section-kicker">AUTOMATED CHECKS</span><h3>Core system safeguards</h3></div></div>
+ {% for check in report.checks %}<div class="health-check"><span class="health-check-icon {{ 'pass' if check.ok else 'warn' }}">{{ '✓' if check.ok else '!' }}</span><div><strong>{{ check.name }}</strong><p>{{ check.detail }}</p></div><b>{{ 'PASS' if check.ok else 'CHECK' }}</b></div>{% endfor %}
+ </section>
+ <aside class="control-panel daily-check"><span class="section-kicker">OWNER MODE</span><h3>Your daily five-minute check</h3><p>You should not need to babysit this system. When live automation arrives, this screen will be the first place to look.</p><div class="safety-row"><span>Live customer sending</span><strong class="status-off">Locked</strong></div><div class="safety-row"><span>Unknown client execution</span><strong>Blocked</strong></div><div class="safety-row"><span>Phone mismatch execution</span><strong>Blocked</strong></div><div class="safety-row"><span>Audit trail</span><strong>On</strong></div></aside>
+</div>
+<div class="panel reliability-principle"><span>DESIGN RULE</span><strong>If Business OS is unsure, it stops instead of guessing.</strong><p>That is intentional. Reliability matters more than pretending automation succeeded.</p></div>
+{% endblock %}
