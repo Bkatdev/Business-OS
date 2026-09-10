@@ -37,6 +37,8 @@ from services.operator_search import search_operator_records
 from services.customer_continuity import customer_continuity
 from services.system_health import build_health_report
 from services.control_plane import ensure_control_plane_schema, control_plane_overview, command_center_summary, review_improvement, ledger_event
+from services.execution_schema import ensure_execution_schema
+from services.execution_core import live_actions_enabled
 from services.reliability import (
     create_database_snapshot,
     ensure_daily_snapshot,
@@ -799,11 +801,27 @@ def approvals():
         """
     ).fetchall()
 
+    message_rows = conn.execute(
+        """
+        SELECT
+            outbound_messages.*,
+            leads.caller_name,
+            businesses.name AS business_name
+        FROM outbound_messages
+        LEFT JOIN leads ON leads.id = outbound_messages.lead_id
+        LEFT JOIN businesses ON businesses.id = outbound_messages.business_id
+        WHERE outbound_messages.status = 'Pending Approval'
+        ORDER BY outbound_messages.id DESC
+        LIMIT 12
+        """
+    ).fetchall()
+
     conn.close()
 
     return render_template(
         "approvals.html",
         approvals=rows,
+        message_approvals=message_rows,
     )
 
 
@@ -2053,6 +2071,7 @@ def schedule():
 @app.route("/automation")
 def automation_center():
     conn = connect()
+    ensure_execution_schema(conn)
     pending = conn.execute(
         """
         SELECT outbound_messages.*, leads.caller_name, businesses.name AS business_name
@@ -2094,16 +2113,33 @@ def automation_center():
         LIMIT 30
         """
     ).fetchall()
+    actions = conn.execute(
+        """
+        SELECT actions.*, leads.caller_name, businesses.name AS business_name
+        FROM actions
+        LEFT JOIN leads ON leads.id = actions.lead_id
+        LEFT JOIN businesses ON businesses.id = actions.business_id
+        ORDER BY actions.id DESC
+        LIMIT 40
+        """
+    ).fetchall()
+    action_stats = {
+        "succeeded": sum(1 for row in actions if row["status"] == "SUCCEEDED"),
+        "attention": sum(1 for row in actions if row["status"] in {"UNKNOWN", "FAILED_PERMANENT"}),
+        "pending_outcome": sum(1 for row in actions if row["status"] == "ACCEPTED_PENDING_OUTCOME"),
+        "retry_scheduled": sum(1 for row in actions if row["status"] == "RETRY_SCHEDULED"),
+    }
     stats = {
         "pending": len(pending),
         "ready": len(ready),
-        "successful": sum(1 for row in executions if row["status"] == "Success"),
-        "blocked": sum(1 for row in executions if row["status"] == "Blocked"),
+        "successful": action_stats["succeeded"],
+        "blocked": sum(1 for row in actions if row["status"] == "BLOCKED"),
     }
     conn.close()
     return render_template(
         "automation.html", pending=pending, ready=ready, recent=recent,
-        executions=executions, stats=stats, execution_mode="Simulation"
+        executions=executions, actions=actions, action_stats=action_stats, stats=stats,
+        execution_mode="Simulation", live_actions_enabled=live_actions_enabled()
     )
 
 
@@ -2569,6 +2605,7 @@ if __name__ == "__main__":
     ensure_business_config_schema(conn)
     ensure_front_office_schema(conn)
     ensure_control_plane_schema(conn)
+    ensure_execution_schema(conn)
     conn.close()
     print(f"Business OS {VERSION} · {RELEASE_NAME} · {BUILD_ID}")
     print(f"Project root: {os.path.dirname(os.path.abspath(__file__))}")

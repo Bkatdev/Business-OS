@@ -5,14 +5,14 @@
 <div class="auto-command-hero">
   <div class="auto-command-copy">
     <div class="eyebrow-row"><span class="section-kicker">EXECUTION ENGINE</span><a class="live-dot health-link" href="{{ url_for('system_health') }}"><i></i> OPEN SYSTEM HEALTH</a></div>
-    <h2>Automation with a seatbelt.</h2>
-    <p>Review customer communication, approve it, then run the complete delivery pipeline in simulation before a live provider ever gets permission to send.</p>
-    <div class="auto-flow"><span>Draft</span><b>→</b><span>Approve</span><b>→</b><span>Validate</span><b>→</b><span>Execute</span><b>→</b><span>Audit</span></div>
+    <h2>One governed spine for every external action.</h2>
+    <p>Business OS now separates intent, policy, idempotency, provider execution, outcome verification, and human attention so future SMS, scheduling, voice, and other providers can share one safe architecture.</p>
+    <div class="auto-flow"><span>Intent</span><b>→</b><span>Policy</span><b>→</b><span>Execute</span><b>→</b><span>Outcome</span><b>→</b><span>Audit</span></div>
   </div>
   <div class="mode-console">
     <span>EXECUTION MODE</span><strong>{{ execution_mode }}</strong>
-    <p>No external messages can leave Business OS.</p>
-    <div class="mode-switch"><i></i><span>LIVE SENDING LOCKED</span></div>
+    <p>Simulation uses the same execution spine with a side-effect-free provider.</p>
+    <div class="mode-switch"><i></i><span>{{ 'LIVE GATE ENABLED · NO PROVIDER' if live_actions_enabled else 'LIVE ACTIONS LOCKED' }}</span></div>
   </div>
 </div>
 
@@ -21,6 +21,35 @@
   <div class="automation-metric"><span>Ready to test</span><strong>{{ stats.ready }}</strong><small>Approved execution jobs</small></div>
   <div class="automation-metric"><span>Successful runs</span><strong>{{ stats.successful }}</strong><small>Simulation executions</small></div>
   <div class="automation-metric"><span>Blocked safely</span><strong>{{ stats.blocked }}</strong><small>Guardrails did their job</small></div>
+</div>
+
+<div class="exec-spine-strip" aria-label="Governed execution flow">
+  <div class="exec-spine-step active"><span>01</span><strong>Intent</strong></div>
+  <div class="exec-spine-step active"><span>02</span><strong>Policy</strong></div>
+  <div class="exec-spine-step active"><span>03</span><strong>Idempotency</strong></div>
+  <div class="exec-spine-step active"><span>04</span><strong>Provider</strong></div>
+  <div class="exec-spine-step active"><span>05</span><strong>Outcome</strong></div>
+  <div class="exec-spine-step active"><span>06</span><strong>Attention / Ledger</strong></div>
+</div>
+
+<div class="execution-truth">
+  <section class="panel v9-panel">
+    <span class="section-kicker">EXECUTION TRUTH</span>
+    <h3>Business OS owns the action state.</h3>
+    <p>Providers are replaceable capabilities. Tenant ownership, policy, idempotency, attempts, final outcome, and audit history remain inside Business OS.</p>
+    <div class="truth-grid">
+      <div class="truth-cell"><span>Confirmed actions</span><strong>{{ action_stats.succeeded }}</strong></div>
+      <div class="truth-cell"><span>Awaiting provider outcome</span><strong>{{ action_stats.pending_outcome }}</strong></div>
+      <div class="truth-cell"><span>Retry scheduled</span><strong>{{ action_stats.retry_scheduled }}</strong></div>
+      <div class="truth-cell"><span>Needs human attention</span><strong>{{ action_stats.attention }}</strong></div>
+    </div>
+  </section>
+  <section class="panel v9-panel">
+    <span class="section-kicker">LIVE SAFETY</span>
+    <h3>Fail closed by default.</h3>
+    <p><span class="live-gate-badge locked">{{ 'Environment gate on' if live_actions_enabled else 'Environment gate off' }}</span></p>
+    <div class="architecture-note"><strong>No live provider is registered.</strong><p>Even if the environment gate is enabled, v11 cannot contact a customer until a deliberate provider adapter, compliance controls, authenticated webhooks, and provider-specific verification are added.</p></div>
+  </section>
 </div>
 
 <div class="automation-layout">
@@ -77,7 +106,22 @@
   </aside>
 </div>
 
-<div class="ops-section-title section-gap"><div><span class="section-kicker">EXECUTION LEDGER</span><h3>What the engine actually did</h3></div><span class="count-bubble">{{ executions|length }}</span></div>
+<div class="ops-section-title section-gap"><div><span class="section-kicker">GOVERNED ACTION LEDGER</span><h3>Canonical action state</h3><p>One record per idempotent action, independent of provider.</p></div><span class="count-bubble">{{ actions|length }}</span></div>
+{% if actions %}
+<div class="action-ledger panel">
+  {% for item in actions %}
+  <div class="action-row" id="action-{{ item.id }}">
+    <div><span class="action-state {{ item.status|lower }}">{{ item.status|replace('_',' ') }}</span></div>
+    <div class="action-main"><strong>{{ item.action_type|replace('_',' ') }}</strong><p>{{ item.outcome_detail or item.policy_reason or item.last_error or 'Action state recorded.' }}</p><small>{{ item.caller_name or 'No lead' }} · {{ item.business_name or 'Unknown client' }} · Action #{{ item.id }}</small></div>
+    <div class="action-meta"><span>{{ item.provider or 'No provider' }}</span><small>{{ item.mode|title }} · {{ item.created_at }}</small></div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="panel clear-state"><span class="clear-check">◎</span><div><strong>No governed actions yet</strong><p>Your next simulation will create the first canonical v11 action record.</p></div></div>
+{% endif %}
+
+<div class="ops-section-title section-gap subdued"><div><span class="section-kicker">COMPATIBILITY LEDGER</span><h3>v10.x execution history</h3></div><span class="count-bubble">{{ executions|length }}</span></div>
 {% if executions %}
 <div class="execution-ledger panel">
   {% for item in executions %}

@@ -1,1 +1,78 @@
-{% extends 'base.html' %}{% block heading %}Approvals{% endblock %}{% block content %}<div class='panel'>{% for a in approvals %}<div class='reason'><span>{{a.title}} · {{a.status}}</span></div>{% else %}<p class='muted'>Nothing needs approval right now.</p>{% endfor %}</div>{% endblock %}
+{% extends "base.html" %}
+{% block title %}Approvals · Business OS{% endblock %}
+{% block heading %}Approvals{% endblock %}
+{% block actions %}<a class="btn secondary" href="{{ url_for('automation_center') }}">Open Automation</a>{% endblock %}
+{% block content %}
+{% set pending_general = approvals|selectattr('status', 'equalto', 'Pending')|list %}
+<div class="v111-page-intro">
+  <div>
+    <span class="section-kicker">HUMAN AUTHORITY</span>
+    <h2>Review consequential work before it moves.</h2>
+    <p>Business OS may prepare or recommend an action, but approval remains explicit and traceable.</p>
+  </div>
+  <div class="v111-approval-summary">
+    <div><strong>{{ pending_general|length }}</strong><span>General pending</span></div>
+    <div><strong>{{ message_approvals|length }}</strong><span>Messages pending</span></div>
+  </div>
+</div>
+
+<section class="panel v111-approval-section">
+  <div class="v9-section-head">
+    <div><span class="section-kicker">APPROVAL QUEUE</span><h3>General decisions</h3><p>Approve or reject recorded requests that require human authority.</p></div>
+    <span class="count-bubble">{{ pending_general|length }}</span>
+  </div>
+  {% if pending_general %}
+  <div class="v111-approval-list">
+    {% for a in pending_general %}
+    <article class="v111-approval-row">
+      <div class="v111-approval-copy">
+        <div class="v111-row-title"><strong>{{ a.title }}</strong><span class="v111-status-badge pending">Pending</span></div>
+        {% if a.details %}<p>{{ a.details }}</p>{% endif %}
+        <small>{{ a.business_name or 'No client assigned' }} · {{ a.created_at }}</small>
+      </div>
+      <div class="v111-approval-actions">
+        <form method="POST" action="{{ url_for('approval_action', approval_id=a.id, action='reject') }}"><button class="btn danger-soft" type="submit">Reject</button></form>
+        <form method="POST" action="{{ url_for('approval_action', approval_id=a.id, action='approve') }}"><button class="btn" type="submit">Approve</button></form>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="v9-empty"><strong>No general approvals are waiting.</strong><span>New requests will appear here when policy requires human authority.</span></div>
+  {% endif %}
+</section>
+
+<section class="panel v111-approval-section section-gap">
+  <div class="v9-section-head">
+    <div><span class="section-kicker">CUSTOMER COMMUNICATION</span><h3>Message approvals</h3><p>Message drafts are reviewed and executed from Automation so there is one action path.</p></div>
+    <span class="count-bubble">{{ message_approvals|length }}</span>
+  </div>
+  {% if message_approvals %}
+  <div class="v111-message-review-list">
+    {% for message in message_approvals %}
+    <a class="v111-message-review" href="{{ url_for('automation_center') }}">
+      <div><strong>{{ message.caller_name or 'Unknown lead' }}</strong><p>{{ message.body }}</p><small>{{ message.business_name or 'Unassigned client' }} · {{ message.channel }} · {{ message.created_at }}</small></div>
+      <span>Review in Automation →</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="v9-empty"><strong>No customer messages need approval.</strong><span>Drafts created from Lead Workspace will appear here and in Automation.</span></div>
+  {% endif %}
+</section>
+
+{% if approvals %}
+<section class="panel v111-approval-section section-gap">
+  <details class="v111-details">
+    <summary>Decision history</summary>
+    <div class="v111-history-list">
+      {% for a in approvals if a.status != 'Pending' %}
+      <div class="v111-history-row"><div><strong>{{ a.title }}</strong><small>{{ a.business_name or 'No client assigned' }} · {{ a.created_at }}</small></div><span class="v111-status-badge {{ 'safe' if a.status == 'Approved' else 'rejected' }}">{{ a.status }}</span></div>
+      {% else %}
+      <div class="v9-empty"><span>No completed approval decisions yet.</span></div>
+      {% endfor %}
+    </div>
+  </details>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,3 +1,3 @@
-VERSION = "v10.5"
-RELEASE_NAME = "Operator Experience"
-BUILD_ID = "v10.5-operator-experience"
+VERSION = "v11.1"
+RELEASE_NAME = "Operator Polish"
+BUILD_ID = "v11.1-operator-polish"

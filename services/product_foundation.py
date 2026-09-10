@@ -159,6 +159,30 @@ def attention_queue(conn, business_id=None, limit=50):
         items.append({"severity":"Critical", "kind":"Quarantine", "title":f"Production {row['entity_type']} #{row['entity_id']} blocked", "detail":row['reason_detail'], "business":f"Client #{row['business_id']}" if row['business_id'] else "Unknown client", "href":"/system-health"})
     for row in conn.execute(f"SELECT outbound_messages.id, outbound_messages.business_id, outbound_messages.error, businesses.name business_name FROM outbound_messages LEFT JOIN businesses ON businesses.id=outbound_messages.business_id WHERE outbound_messages.status='Failed'{(' AND outbound_messages.business_id=?' if business_id is not None else '')} ORDER BY outbound_messages.id DESC LIMIT 25", ([business_id] if business_id is not None else [])).fetchall():
         items.append({"severity":"High", "kind":"Delivery", "title":f"Message #{row['id']} failed", "detail":row['error'] or "Delivery failed and needs review.", "business":row['business_name'] or "Unknown client", "href":"/automation"})
+    # v11 execution exceptions are provider-neutral and deep-link to the action ledger.
+    try:
+        action_sql = """SELECT actions.id, actions.business_id, actions.action_type, actions.status,
+                               actions.outcome_detail, actions.last_error, businesses.name business_name
+                        FROM actions
+                        LEFT JOIN businesses ON businesses.id = actions.business_id
+                        WHERE actions.status IN ('UNKNOWN','FAILED_PERMANENT')"""
+        action_args = []
+        if business_id is not None:
+            action_sql += " AND actions.business_id = ?"
+            action_args.append(business_id)
+        action_sql += " ORDER BY actions.id DESC LIMIT 25"
+        for row in conn.execute(action_sql, action_args).fetchall():
+            items.append({
+                "severity": "Critical" if row["status"] == "UNKNOWN" else "High",
+                "kind": "Action",
+                "title": f"{row['action_type']} action needs review",
+                "detail": row["outcome_detail"] or row["last_error"] or "External action outcome needs review.",
+                "business": row["business_name"] or "Unknown client",
+                "href": f"/automation#action-{row['id']}",
+            })
+    except Exception:
+        # v10.x databases remain readable before init_db creates the v11 tables.
+        pass
     rank={"Critical":3,"High":2,"Medium":1}
     items.sort(key=lambda x: rank.get(x["severity"],0), reverse=True)
     return items[:limit]

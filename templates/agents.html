@@ -1,1 +1,52 @@
-{% extends 'base.html' %}{% block heading %}Agent Center{% endblock %}{% block content %}<div class='cards'><div class='panel'><span class='badge live'>CONNECTED</span><h3>Prospect Finder</h3><p>Google Places discovery + duplicate protection.</p><a class='btn secondary' href='{{url_for("prospects")}}'>Run</a></div><div class='panel'><span class='badge live'>WORKING</span><h3>Website Auditor</h3><p>Evidence-first public website inspection.</p><a class='btn secondary' href='{{url_for("audits")}}'>Run</a></div><div class='panel'><span class='badge'>NEXT</span><h3>Research Agent</h3><p>LLM synthesis, positioning, reviews and sales angles.</p></div><div class='panel'><span class='badge'>PLANNED</span><h3>Demo Builder</h3><p>Prospect-specific private demos with approval gates.</p></div></div>{% endblock %}
+{% extends "base.html" %}
+{% block title %}Agents · Business OS{% endblock %}
+{% block heading %}Agent Center{% endblock %}
+{% block content %}
+<div class="v111-page-intro">
+  <div>
+    <span class="section-kicker">CAPABILITY REGISTRY</span>
+    <h2>Purpose-built tools, one operating system.</h2>
+    <p>Agents provide bounded capabilities. Business OS remains the source of truth for client context, policy, approvals, and outcomes.</p>
+  </div>
+  <span class="v111-status-badge safe">Governed</span>
+</div>
+
+<div class="v111-agent-grid">
+  <section class="panel v111-agent-card">
+    <div class="v111-card-top"><span class="v111-status-badge live">Available</span><span class="v111-agent-index">01</span></div>
+    <h3>Prospect Finder</h3>
+    <p>Discovers real local businesses with duplicate protection and saves qualified prospects into the shared database.</p>
+    <div class="v111-capability-meta"><span>Source</span><strong>Google Places</strong></div>
+    <a class="btn secondary" href="{{ url_for('prospects') }}">Open Prospect Finder</a>
+  </section>
+
+  <section class="panel v111-agent-card">
+    <div class="v111-card-top"><span class="v111-status-badge live">Available</span><span class="v111-agent-index">02</span></div>
+    <h3>Website Auditor</h3>
+    <p>Inspects public website evidence before identifying missing capabilities or sales opportunities.</p>
+    <div class="v111-capability-meta"><span>Mode</span><strong>Evidence first</strong></div>
+    <a class="btn secondary" href="{{ url_for('audits') }}">Open Website Auditor</a>
+  </section>
+
+  <section class="panel v111-agent-card muted-card">
+    <div class="v111-card-top"><span class="v111-status-badge planned">Planned</span><span class="v111-agent-index">03</span></div>
+    <h3>Research Agent</h3>
+    <p>Future structured synthesis for positioning, reviews, objections, and evidence-backed sales angles.</p>
+    <div class="v111-capability-meta"><span>Status</span><strong>Not active</strong></div>
+    <span class="v111-disabled-action">No production capability exposed</span>
+  </section>
+
+  <section class="panel v111-agent-card muted-card">
+    <div class="v111-card-top"><span class="v111-status-badge planned">Planned</span><span class="v111-agent-index">04</span></div>
+    <h3>Demo Builder</h3>
+    <p>Future prospect-specific private demos built from verified facts and protected by approval boundaries.</p>
+    <div class="v111-capability-meta"><span>Status</span><strong>Not active</strong></div>
+    <span class="v111-disabled-action">No autonomous publishing</span>
+  </section>
+</div>
+
+<section class="panel v111-operating-rule section-gap">
+  <div><span class="section-kicker">OPERATING RULE</span><h3>Capabilities do not become authorities.</h3></div>
+  <p>Every current and future agent must use shared business context, deterministic policy, tenant boundaries, and the governed execution spine instead of creating its own isolated workflow.</p>
+</section>
+{% endblock %}

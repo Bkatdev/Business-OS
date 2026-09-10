@@ -620,6 +620,13 @@ def init_db():
             (timestamp,),
         )
 
+    # ---- v11: governed execution spine --------------------------------
+    # Provider-neutral action state lives separately from legacy message
+    # execution rows so future SMS, scheduling, voice, and other adapters
+    # can share one execution model.
+    from services.execution_schema import ensure_execution_schema
+    ensure_execution_schema(con)
+
     con.commit()
     con.close()
 

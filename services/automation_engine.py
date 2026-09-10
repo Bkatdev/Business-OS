@@ -1,8 +1,8 @@
 import re
 from dataclasses import dataclass
-from datetime import datetime
 
 from services.db import now_iso
+from services.execution_core import ActionIntent, execute_action
 from services.governance import production_automation_policy, simulation_policy
 
 
@@ -12,6 +12,8 @@ class ExecutionResult:
     status: str
     detail: str
     provider_message_id: str = ""
+    action_id: int | None = None
+    deduplicated: bool = False
 
 
 def normalize_phone(value):
@@ -27,7 +29,7 @@ def validate_sms_message(conn, message):
         return False, "Message does not exist."
     if message["channel"] != "SMS":
         return False, "Only SMS execution is supported right now."
-    if message["status"] not in {"Approved", "Failed"}:
+    if message["status"] not in {"Approved", "Failed", "Simulated Sent"}:
         return False, f"Message must be Approved before execution. Current status: {message['status']}."
     if not message["business_id"]:
         return False, "Client ownership is missing. Unowned records remain quarantined."
@@ -77,10 +79,11 @@ def validate_sms_message(conn, message):
         return False, "Message body is empty."
     if len(str(message["body"])) > 1200:
         return False, "Message is too long for the current SMS safety policy."
-    return True, f"Ready for safe simulation under {business['name']}"
+    return True, f"SMS validation passed for {business['name']}."
 
 
-def _record(conn, message, mode, status, detail, provider="", provider_id=""):
+def _record_legacy_execution(conn, message, mode, status, detail, provider="", provider_id=""):
+    """Keep the v10.x execution ledger populated during the v11 transition."""
     classification = (message["data_classification"] or "LEGACY").upper()
     quarantine_status = message["quarantine_status"] or "Not Required"
     quarantine_reason = message["quarantine_reason"] or ""
@@ -99,63 +102,118 @@ def _record(conn, message, mode, status, detail, provider="", provider_id=""):
 
 
 def execute_sms(conn, message_id, mode="simulation"):
+    """Execute SMS through the v11 governed action spine.
+
+    v11 keeps the public behavior simulation-only. A live caller can request
+    mode='live', but the global gate and provider registry fail closed.
+    """
     message = conn.execute(
         "SELECT * FROM outbound_messages WHERE id = ?", (message_id,)
     ).fetchone()
-    timestamp = now_iso()
+    if message is None:
+        return ExecutionResult(False, "Blocked", "Message does not exist.")
+
+    valid, validation_reason = validate_sms_message(conn, message)
+    if not valid:
+        # Keep invalid requests observable without creating a provider attempt.
+        intent = ActionIntent(
+            action_type="SEND_SMS",
+            business_id=message["business_id"] or 0,
+            lead_id=message["lead_id"],
+            source_entity_type="outbound_message",
+            source_entity_id=message["id"],
+            mode=mode,
+            approval_required=True,
+            approval_reference=f"outbound_message:{message['id']}",
+            data_classification=(message["data_classification"] or "UNVERIFIED").upper(),
+            quarantine_status=message["quarantine_status"] or "Not Required",
+        )
+        # If ownership itself is missing, do not insert an action with invalid FK.
+        if not message["business_id"]:
+            conn.execute("UPDATE outbound_messages SET error = ? WHERE id = ?", (validation_reason, message_id))
+            conn.commit()
+            return ExecutionResult(False, "Blocked", validation_reason)
+        result = execute_action(
+            conn,
+            intent,
+            {"recipient": normalize_phone(message["recipient"]), "body": message["body"], "channel": "SMS"},
+            policy_allowed=False,
+            policy_reason=validation_reason,
+            policy_context={"message_id": message_id, "validation": "failed"},
+        )
+        conn.execute("UPDATE outbound_messages SET error = ? WHERE id = ?", (validation_reason, message_id))
+        if not result.deduplicated:
+            _record_legacy_execution(conn, message, mode, "Blocked", validation_reason)
+        conn.commit()
+        return ExecutionResult(False, "Blocked", validation_reason, action_id=result.action_id, deduplicated=result.deduplicated)
 
     if mode == "simulation":
-        valid, reason = validate_sms_message(conn, message)
-        if valid:
-            decision = simulation_policy(conn, message)
-            valid, reason = decision.allowed, decision.reason
+        decision = simulation_policy(conn, message)
     else:
-        # Live mode has a stricter governance gate even before provider controls.
         decision = production_automation_policy(conn, message)
-        valid, reason = decision.allowed, decision.reason
 
-    if not valid:
-        if message is not None:
-            _record(conn, message, mode, "Blocked", reason)
-            conn.execute(
-                "UPDATE outbound_messages SET error = ? WHERE id = ?",
-                (reason, message_id),
-            )
-            conn.commit()
-        return ExecutionResult(False, "Blocked", reason)
+    payload = {
+        "channel": "SMS",
+        "recipient": normalize_phone(message["recipient"]),
+        "body": str(message["body"] or ""),
+    }
+    intent = ActionIntent(
+        action_type="SEND_SMS",
+        business_id=message["business_id"],
+        lead_id=message["lead_id"],
+        source_entity_type="outbound_message",
+        source_entity_id=message["id"],
+        mode=mode,
+        approval_required=True,
+        approval_reference=f"outbound_message:{message['id']}",
+        data_classification=(message["data_classification"] or "UNVERIFIED").upper(),
+        quarantine_status=message["quarantine_status"] or "Not Required",
+    )
+    result = execute_action(
+        conn,
+        intent,
+        payload,
+        policy_allowed=decision.allowed,
+        policy_reason=decision.reason,
+        policy_context={"message_id": message_id, "governance_classification": decision.classification},
+    )
 
-    if mode != "simulation":
-        detail = (
-            "Live delivery is still locked. Production governance passed, but a "
-            "provider adapter, consent policy, kill switch, retries, and delivery "
-            "monitoring must be configured first."
+    if result.ok and mode == "simulation":
+        timestamp = now_iso()
+        conn.execute(
+            """
+            UPDATE outbound_messages
+            SET status = 'Simulated Sent', provider = ?, provider_message_id = ?,
+                send_attempts = CASE WHEN ? THEN COALESCE(send_attempts, 0) ELSE COALESCE(send_attempts, 0) + 1 END,
+                last_attempt_at = ?, sent_at = ?, error = ''
+            WHERE id = ?
+            """,
+            (result.provider, result.provider_external_id, 1 if result.deduplicated else 0,
+             timestamp, timestamp, message_id),
         )
-        _record(conn, message, mode, "Blocked", detail)
+        if not result.deduplicated:
+            detail = (
+                "Simulation completed through the v11 governed execution spine. "
+                "Policy, ownership, idempotency, provider boundary, outcome, and audit checks passed. "
+                "No customer was contacted."
+            )
+            _record_legacy_execution(
+                conn, message, mode, "Success", detail, result.provider, result.provider_external_id
+            )
+            conn.execute(
+                """
+                INSERT INTO lead_activities (lead_id, activity_type, title, details, created_at)
+                VALUES (?, 'Automation', 'SMS execution simulated through v11', ?, ?)
+                """,
+                (message["lead_id"], detail, timestamp),
+            )
         conn.commit()
-        return ExecutionResult(False, "Blocked", detail)
+        detail = result.detail if not result.deduplicated else "Duplicate execution request safely reused the existing completed action. No customer was contacted."
+        return ExecutionResult(True, "Simulated Sent", detail, result.provider_external_id, result.action_id, result.deduplicated)
 
-    provider_id = f"sim_{message_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-    detail = (
-        "Simulation completed. Ownership, classification, quarantine, recipient, "
-        "message, and execution checks passed. No customer was contacted."
-    )
-    conn.execute(
-        """
-        UPDATE outbound_messages
-        SET status = 'Simulated Sent', provider = 'Simulation', provider_message_id = ?,
-            send_attempts = COALESCE(send_attempts, 0) + 1,
-            last_attempt_at = ?, sent_at = ?, error = ''
-        WHERE id = ?
-        """,
-        (provider_id, timestamp, timestamp, message_id),
-    )
-    _record(conn, message, "simulation", "Success", detail, "Simulation", provider_id)
-    conn.execute(
-        """
-        INSERT INTO lead_activities (lead_id, activity_type, title, details, created_at)
-        VALUES (?, 'Automation', 'SMS execution simulated', ?, ?)
-        """,
-        (message["lead_id"], detail, timestamp),
-    )
+    # Live remains fail-closed until a real provider is deliberately introduced.
+    if not result.deduplicated:
+        _record_legacy_execution(conn, message, mode, "Blocked" if result.status == "BLOCKED" else result.status, result.detail, result.provider, result.provider_external_id)
+    conn.execute("UPDATE outbound_messages SET error = ? WHERE id = ?", (result.detail, message_id))
     conn.commit()
-    return ExecutionResult(True, "Simulated Sent", detail, provider_id)
+    return ExecutionResult(False, result.status, result.detail, result.provider_external_id, result.action_id, result.deduplicated)

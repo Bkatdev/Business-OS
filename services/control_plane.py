@@ -109,14 +109,19 @@ def control_plane_overview(conn):
     attention=_count(conn,"SELECT COUNT(*) FROM leads WHERE status NOT IN ('Won','Lost') AND (priority='Urgent' OR COALESCE(safety_flag,'')!='')")
     prodq=_count(conn,"SELECT COUNT(*) FROM quarantine_items WHERE status='Open' AND UPPER(COALESCE(classification,''))='PRODUCTION'")
     failures=_count(conn,"SELECT COUNT(*) FROM outbound_messages WHERE status='Failed'")
+    action_failures = 0
+    try:
+        action_failures = _count(conn,"SELECT COUNT(*) FROM actions WHERE status IN ('UNKNOWN','FAILED_PERMANENT')")
+    except Exception:
+        action_failures = 0
     approvals=_count(conn,"SELECT COUNT(*) FROM approvals WHERE status='Pending'") + _count(conn,"SELECT COUNT(*) FROM outbound_messages WHERE status='Pending Approval'")
     improvements=_count(conn,"SELECT COUNT(*) FROM improvement_proposals WHERE status='Proposed'")
     ledger=conn.execute("SELECT * FROM system_ledger ORDER BY id DESC LIMIT 12").fetchall()
     decisions=conn.execute("SELECT * FROM policy_decisions ORDER BY id DESC LIMIT 8").fetchall()
     proposals=conn.execute("SELECT * FROM improvement_proposals ORDER BY CASE severity WHEN 'Critical' THEN 4 WHEN 'High' THEN 3 WHEN 'Medium' THEN 2 ELSE 1 END DESC, id DESC LIMIT 8").fetchall()
-    blockers=prodq+failures
+    blockers=prodq+failures+action_failures
     state="Protected" if blockers==0 else "Attention"
-    return {"state":state,"active_clients":active,"attention":attention,"production_quarantine":prodq,"failed_messages":failures,"pending_approvals":approvals,"improvements":improvements,"ledger":ledger,"decisions":decisions,"proposals":proposals}
+    return {"state":state,"active_clients":active,"attention":attention + action_failures,"production_quarantine":prodq,"failed_messages":failures,"action_failures":action_failures,"pending_approvals":approvals,"improvements":improvements,"ledger":ledger,"decisions":decisions,"proposals":proposals}
 
 
 def command_center_summary(conn):
@@ -125,7 +130,7 @@ def command_center_summary(conn):
       "active_clients": _count(conn,"SELECT COUNT(*) FROM businesses WHERE UPPER(COALESCE(lifecycle_stage,''))='ACTIVE'"),
       "calls": _count(conn,"SELECT COUNT(*) FROM calls"),
       "appointments": _count(conn,"SELECT COUNT(*) FROM appointments WHERE status='Scheduled'"),
-      "attention": _count(conn,"SELECT COUNT(*) FROM leads WHERE status NOT IN ('Won','Lost') AND (priority='Urgent' OR COALESCE(safety_flag,'')!='')") + _count(conn,"SELECT COUNT(*) FROM outbound_messages WHERE status='Failed'"),
+      "attention": _count(conn,"SELECT COUNT(*) FROM leads WHERE status NOT IN ('Won','Lost') AND (priority='Urgent' OR COALESCE(safety_flag,'')!='')") + _count(conn,"SELECT COUNT(*) FROM outbound_messages WHERE status='Failed'") + (_count(conn,"SELECT COUNT(*) FROM actions WHERE status IN ('UNKNOWN','FAILED_PERMANENT')") if 'actions' in {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")} else 0),
       "quarantine": _count(conn,"SELECT COUNT(*) FROM quarantine_items WHERE status='Open'"),
       "prod_quarantine": _count(conn,"SELECT COUNT(*) FROM quarantine_items WHERE status='Open' AND UPPER(COALESCE(classification,''))='PRODUCTION'"),
       "improvements": _count(conn,"SELECT COUNT(*) FROM improvement_proposals WHERE status='Proposed'"),

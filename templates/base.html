@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='v103.css') }}?v=1">
     <link rel="stylesheet" href="{{ url_for('static', filename='v104.css') }}?v=1">
     <link rel="stylesheet" href="{{ url_for('static', filename='v105.css') }}?v=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='v11.css') }}?v=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='v111.css') }}?v=1">
 </head>
 <body>
 <div class="app-shell">
@@ -37,7 +39,7 @@
 
         <div class="sidebar-section-label">Customers</div>
         <nav class="sidebar-nav">
-            <a class="{% if request.endpoint in ['clients', 'client_operations', 'client_onboarding', 'activate_client'] %}active{% endif %}" href="{{ url_for('clients') }}" title="Clients">
+            <a class="{% if request.endpoint in ['clients', 'client_operations', 'client_onboarding', 'activate_client', 'business_configuration', 'add_business_service', 'toggle_business_service', 'add_business_intake_question', 'toggle_business_intake_question', 'update_client_retell_agent'] %}active{% endif %}" href="{{ url_for('clients') }}" title="Clients">
                 <span class="nav-icon">&#9635;</span>
                 <span class="nav-label">Clients</span>
             </a>
