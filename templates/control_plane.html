@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Business OS · Control Plane{% endblock %}
+{% block heading %}Control Plane{% endblock %}
+{% block actions %}<a class="btn secondary" href="{{ url_for('system_map') }}">System Map</a><a class="btn" href="{{ url_for('system_health') }}">Reliability</a>{% endblock %}
+{% block content %}
+<div class="v102-page-intro">
+  <span class="section-kicker">CENTRAL NERVOUS SYSTEM</span>
+  <h2>One place for authority, exceptions, and operational truth.</h2>
+  <p>The Control Plane coordinates consequential work while the existing governance layer remains the production enforcement boundary.</p>
+</div>
+<div class="v102-stat-grid">
+  <a href="{{ url_for('clients') }}" class="metric-card"><div class="metric-top"><span class="metric-icon">◎</span><span class="metric-label">System State</span></div><strong class="v102-word-metric">{{ control.state }}</strong><p>Current operating posture.</p></a>
+  <a href="{{ url_for('clients') }}" class="metric-card"><div class="metric-top"><span class="metric-icon">▣</span><span class="metric-label">Active Clients</span></div><strong>{{ control.active_clients }}</strong><p>Passed activation gates.</p></a>
+  <a href="{{ url_for('approvals') }}" class="metric-card"><div class="metric-top"><span class="metric-icon">✓</span><span class="metric-label">Pending Approvals</span></div><strong>{{ control.pending_approvals }}</strong><p>Waiting for human authority.</p></a>
+  <a href="{{ url_for('attention_center') }}" class="metric-card {% if control.production_quarantine %}urgent{% else %}positive{% endif %}"><div class="metric-top"><span class="metric-icon">!</span><span class="metric-label">Production Quarantine</span></div><strong>{{ control.production_quarantine }}</strong><p>Unsafe production records isolated.</p></a>
+  <a href="{{ url_for('improvements') }}" class="metric-card"><div class="metric-top"><span class="metric-icon">↗</span><span class="metric-label">Improvements</span></div><strong>{{ control.improvements }}</strong><p>Evidence-backed proposals.</p></a>
+</div>
+<div class="v102-two-column">
+<section class="panel command-panel">
+  <div class="panel-heading"><div><span class="section-kicker">SYSTEM LEDGER</span><h3>Recent decisions and events</h3></div><span class="panel-meta">Append-only history</span></div>
+  {% if control.ledger %}<div class="v102-ledger">{% for e in control.ledger %}<div class="v102-ledger-row"><span class="v102-ledger-type">{{ e['event_type'] }}</span><div><strong>{{ e['title'] }}</strong><small>{{ e['source'] }} · {{ e['created_at'] }}</small>{% if e['detail'] %}<p>{{ e['detail'] }}</p>{% endif %}</div><span class="v102-severity">{{ e['severity'] }}</span></div>{% endfor %}</div>{% else %}<div class="clear-state"><span class="clear-check">✓</span><div><strong>Ledger is ready</strong><p>New Control Plane events will appear here. Historical activity is never invented.</p></div></div>{% endif %}
+</section>
+<section class="panel command-panel">
+  <div class="panel-heading"><div><span class="section-kicker">POLICY BOUNDARY</span><h3>What may happen next</h3></div></div>
+  <div class="v102-policy-stack"><div class="v102-policy allow"><b>ALLOW</b><span>Safe, authorized, within policy</span></div><div class="v102-policy approval"><b>APPROVAL</b><span>Consequential work waits for a human</span></div><div class="v102-policy block"><b>BLOCK</b><span>Unsafe, ambiguous, or outside tenant boundary</span></div></div>
+  <div class="v102-exception-link"><div><span class="section-kicker">OPEN EXCEPTIONS</span><strong>{{ control.attention }}</strong></div><a class="text-link" href="{{ url_for('attention_center') }}">Open Attention →</a></div>
+</section>
+</div>
+{% endblock %}

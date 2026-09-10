@@ -29,6 +29,7 @@ from services.security import verify_retell_signature
 from services.version import VERSION, RELEASE_NAME, BUILD_ID
 from services.product_foundation import ensure_product_schema, readiness_for_business, save_profile, activate_business, client_product_view, attention_queue
 from services.system_health import build_health_report
+from services.control_plane import ensure_control_plane_schema, control_plane_overview, command_center_summary, review_improvement, ledger_event
 from services.reliability import (
     create_database_snapshot,
     ensure_daily_snapshot,
@@ -100,6 +101,7 @@ def dashboard():
     from services.action_queue import build_action_queue
 
     conn = connect()
+    ensure_control_plane_schema(conn)
 
     rows = conn.execute(
         """
@@ -261,6 +263,8 @@ def dashboard():
         """
     ).fetchone()[0]
 
+    control_summary = command_center_summary(conn)
+
     pending_messages = conn.execute(
         """
         SELECT COUNT(*)
@@ -346,6 +350,7 @@ def dashboard():
         pending_messages=pending_messages,
         pipeline=pipeline,
         pipeline_max=pipeline_max,
+        control=control_summary,
     )
 
 
@@ -1835,6 +1840,34 @@ def attention_center():
     return render_template("attention_center.html", items=items, business_id=business_id)
 
 
+
+@app.route("/control-plane")
+def control_plane():
+    conn=connect(); overview=control_plane_overview(conn); conn.close()
+    return render_template("control_plane.html", control=overview)
+
+
+@app.route("/system-map")
+def system_map():
+    conn=connect(); overview=control_plane_overview(conn); conn.close()
+    return render_template("system_map.html", control=overview)
+
+
+@app.route("/improvements")
+def improvements():
+    conn=connect(); overview=control_plane_overview(conn); conn.close()
+    return render_template("improvements.html", control=overview)
+
+
+@app.route("/improvements/<int:proposal_id>/review", methods=["POST"])
+def review_improvement_proposal(proposal_id):
+    status=request.form.get("status","").strip(); note=request.form.get("note","")
+    if review_improvement(proposal_id,status,note):
+        flash(f"Improvement proposal marked {status}. No system behavior was changed automatically.","success")
+    else:
+        flash("Improvement review was not saved.","error")
+    return redirect(url_for("improvements"))
+
 @app.route("/system-health")
 def system_health():
     conn = connect()
@@ -2409,6 +2442,7 @@ if __name__ == "__main__":
     init_db()
     conn = connect()
     ensure_product_schema(conn)
+    ensure_control_plane_schema(conn)
     conn.close()
     print(f"Business OS {VERSION} · {RELEASE_NAME} · {BUILD_ID}")
     print(f"Project root: {os.path.dirname(os.path.abspath(__file__))}")

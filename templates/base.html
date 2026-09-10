@@ -6,6 +6,7 @@
     <title>{% block title %}Business OS{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v={{ business_os_version|default('v9.2') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='v92_signature.css') }}?v=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='v102_restore.css') }}?v=1">
 </head>
 <body>
 <div class="app-shell">
@@ -79,6 +80,18 @@
                 <span class="nav-label">Approvals</span>
                 {% if global_pending_approvals %}<span class="nav-count alert">{{ global_pending_approvals }}</span>{% endif %}
             </a>
+            <a class="{% if request.endpoint == 'control_plane' %}active{% endif %}" href="{{ url_for('control_plane') }}" title="Control Plane">
+                <span class="nav-icon">&#9672;</span>
+                <span class="nav-label">Control Plane</span>
+            </a>
+            <a class="{% if request.endpoint == 'improvements' %}active{% endif %}" href="{{ url_for('improvements') }}" title="Improvements">
+                <span class="nav-icon">&#8599;</span>
+                <span class="nav-label">Improvements</span>
+            </a>
+            <a class="{% if request.endpoint == 'system_map' %}active{% endif %}" href="{{ url_for('system_map') }}" title="System Map">
+                <span class="nav-icon">&#8984;</span>
+                <span class="nav-label">System Map</span>
+            </a>
             <a class="{% if request.endpoint == 'system_health' %}active{% endif %}" href="{{ url_for('system_health') }}" title="Reliability">
                 <span class="nav-icon">&#9679;</span>
                 <span class="nav-label">Reliability</span>
@@ -93,7 +106,7 @@
                     <span>Development environment</span>
                 </div>
             </div>
-            <div class="version">Business OS &middot; v9.2</div>
+            <div class="version">Business OS &middot; {{ business_os_version|default('v10.2') }}</div>
         </div>
     </aside>
 

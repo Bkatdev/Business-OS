@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Business OS · System Map{% endblock %}
+{% block heading %}System Map{% endblock %}
+{% block actions %}<a class="btn secondary" href="{{ url_for('control_plane') }}">Control Plane</a>{% endblock %}
+{% block content %}
+<div class="v102-page-intro"><span class="section-kicker">HOW BUSINESS OS WORKS</span><h2>A coordinated operating loop, not a collection of disconnected agents.</h2><p>Each stage hands work to the next while policy, human authority, and recoverability remain visible.</p></div>
+<section class="panel command-panel v102-map-panel">
+<div class="v102-map-flow">
+  <div class="v102-map-node"><span>01</span><strong>Intake</strong><small>Calls · web · SMS · forms</small></div><i>→</i>
+  <div class="v102-map-node"><span>02</span><strong>Client Context</strong><small>Identity · lifecycle · rules</small></div><i>→</i>
+  <div class="v102-map-node core"><span>03</span><strong>Policy Engine</strong><small>Allow · approval · block</small></div><i>→</i>
+  <div class="v102-map-branch"><div class="v102-map-choice allow"><strong>ACT</strong><small>Authorized work</small></div><div class="v102-map-choice approval"><strong>APPROVAL</strong><small>Human review</small></div><div class="v102-map-choice block"><strong>BLOCK</strong><small>Attention / quarantine</small></div></div><i>→</i>
+  <div class="v102-map-node"><span>04</span><strong>Outcome Check</strong><small>Verify what happened</small></div><i>→</i>
+  <div class="v102-map-node"><span>05</span><strong>System Ledger</strong><small>Record the truth</small></div><i>→</i>
+  <div class="v102-map-node"><span>06</span><strong>Improvement</strong><small>Propose · human decides</small></div>
+</div>
+</section>
+<div class="v102-principles">
+  <div class="panel"><span class="section-kicker">01 · TRUTH</span><h3>Truth over appearance</h3><p>No invented availability, prices, outcomes, or capabilities.</p></div>
+  <div class="panel"><span class="section-kicker">02 · BOUNDARIES</span><h3>Provable ownership</h3><p>Production actions require a valid client boundary.</p></div>
+  <div class="panel"><span class="section-kicker">03 · AUTHORITY</span><h3>Human control</h3><p>The system can recommend. It cannot silently rewrite critical rules.</p></div>
+  <div class="panel"><span class="section-kicker">04 · RECOVERY</span><h3>Fail visibly</h3><p>Failures become exceptions with preserved data and recovery paths.</p></div>
+</div>
+{% endblock %}

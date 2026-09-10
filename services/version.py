@@ -1,4 +1,3 @@
-PRODUCT_NAME = "Business OS"
-VERSION = "v9.2"
-RELEASE_NAME = "Signature Polish"
-BUILD_ID = "v9.2-signature-polish"
+VERSION = 'v10.2'
+RELEASE_NAME = '9.2 Restoration'
+BUILD_ID = 'v10.2-v92-restoration'

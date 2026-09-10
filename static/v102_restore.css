@@ -1,0 +1,58 @@
+/* Business OS v10.2 — v9.2 visual restoration
+   Deliberately additive. The v9.2 shell and signature stylesheet remain the design authority. */
+
+.v102-control-strip { display:flex; align-items:center; gap:24px; text-decoration:none; color:inherit; background:rgba(255,255,255,.82); border:1px solid var(--border, #e5e7eb); border-radius:16px; padding:15px 18px; margin:0 0 18px; box-shadow:0 10px 30px rgba(15,23,42,.05); transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease; }
+.v102-control-strip:hover { transform:translateY(-1px); border-color:rgba(99,102,241,.32); box-shadow:0 14px 34px rgba(15,23,42,.075); }
+.v102-control-state { display:flex; align-items:center; gap:10px; min-width:170px; }
+.v102-control-state div { display:flex; flex-direction:column; gap:2px; }
+.v102-control-state span:not(.v102-status-dot), .v102-control-facts { font-size:11px; color:var(--muted,#64748b); }
+.v102-control-state strong { font-size:14px; }
+.v102-status-dot { width:9px; height:9px; border-radius:999px; background:#22c55e; box-shadow:0 0 0 5px rgba(34,197,94,.11); }
+.v102-status-dot.attention { background:#f59e0b; box-shadow:0 0 0 5px rgba(245,158,11,.12); }
+.v102-control-facts { display:flex; gap:22px; flex:1; }
+.v102-control-facts span { white-space:nowrap; } .v102-control-facts b { color:var(--text,#111827); font-size:13px; }
+.v102-control-arrow { font-size:12px; color:#4f46e5; white-space:nowrap; }
+
+.v102-page-intro { margin:0 0 24px; max-width:880px; }
+.v102-page-intro h2 { margin:7px 0 8px; font-size:30px; line-height:1.12; letter-spacing:-.03em; }
+.v102-page-intro p { margin:0; color:var(--muted,#64748b); line-height:1.65; }
+.v102-stat-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:14px; margin-bottom:20px; }
+.v102-stat-grid .metric-card { min-width:0; }
+.v102-word-metric { font-size:24px !important; }
+.v102-two-column { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(320px,.65fr); gap:20px; align-items:start; }
+.v102-ledger { display:flex; flex-direction:column; }
+.v102-ledger-row { display:grid; grid-template-columns:92px 1fr auto; gap:14px; padding:15px 0; border-top:1px solid var(--border,#e5e7eb); align-items:start; }
+.v102-ledger-row:first-child { border-top:0; }
+.v102-ledger-type { font-size:10px; font-weight:800; letter-spacing:.08em; color:#6366f1; text-transform:uppercase; }
+.v102-ledger-row div { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.v102-ledger-row small,.v102-ledger-row p,.v102-severity { color:var(--muted,#64748b); font-size:11px; }
+.v102-ledger-row p { margin:2px 0 0; line-height:1.5; }
+.v102-policy-stack { display:flex; flex-direction:column; gap:9px; margin-top:4px; }
+.v102-policy { display:grid; grid-template-columns:92px 1fr; gap:10px; padding:12px 13px; border-radius:12px; font-size:12px; border:1px solid var(--border,#e5e7eb); }
+.v102-policy.allow { background:#f0fdf4; border-color:#dcfce7; } .v102-policy.approval { background:#fffbeb; border-color:#fef3c7; } .v102-policy.block { background:#fef2f2; border-color:#fee2e2; }
+.v102-exception-link { display:flex; justify-content:space-between; align-items:end; margin-top:20px; padding-top:17px; border-top:1px solid var(--border,#e5e7eb); }
+.v102-exception-link div { display:flex; flex-direction:column; gap:3px; } .v102-exception-link strong { font-size:28px; }
+
+.v102-map-panel { overflow:hidden; }
+.v102-map-flow { display:flex; align-items:center; gap:10px; overflow-x:auto; padding:6px 2px 12px; }
+.v102-map-flow > i { font-style:normal; color:#94a3b8; flex:0 0 auto; }
+.v102-map-node,.v102-map-choice { border:1px solid var(--border,#e5e7eb); background:#fff; border-radius:14px; padding:15px; min-width:150px; display:flex; flex-direction:column; gap:5px; flex:0 0 auto; }
+.v102-map-node > span { font-size:10px; font-weight:800; color:#6366f1; letter-spacing:.08em; }
+.v102-map-node strong,.v102-map-choice strong { font-size:13px; } .v102-map-node small,.v102-map-choice small { color:var(--muted,#64748b); font-size:10px; line-height:1.4; }
+.v102-map-node.core { border-color:#c7d2fe; background:#f5f3ff; }
+.v102-map-branch { display:flex; flex-direction:column; gap:6px; flex:0 0 auto; } .v102-map-choice { min-width:142px; padding:9px 12px; }
+.v102-map-choice.allow { border-color:#dcfce7; background:#f0fdf4; } .v102-map-choice.approval { border-color:#fef3c7; background:#fffbeb; } .v102-map-choice.block { border-color:#fee2e2; background:#fef2f2; }
+.v102-principles { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-top:18px; }
+.v102-principles .panel { padding:18px; } .v102-principles h3 { margin:7px 0 6px; font-size:15px; } .v102-principles p { margin:0; color:var(--muted,#64748b); font-size:12px; line-height:1.55; }
+
+.v102-improvement-list { display:flex; flex-direction:column; gap:16px; }
+.v102-proposal-meta { display:flex; align-items:center; gap:8px; color:var(--muted,#64748b); font-size:11px; flex-wrap:wrap; }
+.v102-proposal-grid { display:grid; grid-template-columns:1fr 1fr; gap:28px; padding:18px 0; border-top:1px solid var(--border,#e5e7eb); border-bottom:1px solid var(--border,#e5e7eb); }
+.v102-proposal-grid p { margin:7px 0 0; line-height:1.6; color:#475569; }
+.v102-review-form { display:grid; grid-template-columns:1fr auto auto; gap:10px; margin-top:14px; }
+.v102-review-form input { min-width:0; border:1px solid var(--border,#dbe1ea); border-radius:10px; padding:10px 12px; font:inherit; outline:none; background:#fff; }
+.v102-review-form input:focus { border-color:#818cf8; box-shadow:0 0 0 3px rgba(99,102,241,.1); }
+.v102-reviewed { margin-top:14px; padding:10px 12px; border-radius:10px; background:#f8fafc; color:#64748b; font-size:12px; }
+
+@media (max-width:1200px){ .v102-stat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.v102-principles{grid-template-columns:repeat(2,minmax(0,1fr))}.v102-control-facts{display:none}.v102-two-column{grid-template-columns:1fr} }
+@media (max-width:760px){ .v102-stat-grid{grid-template-columns:1fr 1fr}.v102-proposal-grid{grid-template-columns:1fr}.v102-review-form{grid-template-columns:1fr}.v102-control-strip{align-items:flex-start;flex-direction:column}.v102-control-arrow{align-self:flex-end}.v102-principles{grid-template-columns:1fr}.v102-page-intro h2{font-size:25px} }

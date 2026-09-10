@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Business OS · Improvements{% endblock %}
+{% block heading %}Improvement Queue{% endblock %}
+{% block actions %}<a class="btn secondary" href="{{ url_for('control_plane') }}">Control Plane</a>{% endblock %}
+{% block content %}
+<div class="v102-page-intro"><span class="section-kicker">HUMAN-GUIDED IMPROVEMENT</span><h2>Notice friction. Propose a better path. Keep humans in control.</h2><p>Accepting a proposal records your decision only. It never changes production behavior or rewrites code automatically.</p></div>
+<div class="v102-improvement-list">
+{% for p in control.proposals %}
+<article class="panel command-panel v102-improvement">
+  <div class="panel-heading"><div><span class="section-kicker">{{ p['area'] }}</span><h3>{{ p['title'] }}</h3></div><div class="v102-proposal-meta"><span class="v9-severity {{ p['severity']|lower }}">{{ p['severity'] }}</span><span>{{ p['evidence_count'] }} signal{% if p['evidence_count'] != 1 %}s{% endif %}</span><span>{{ p['status'] }}</span></div></div>
+  <div class="v102-proposal-grid"><div><span class="section-kicker">OBSERVATION</span><p>{{ p['observation'] }}</p></div><div><span class="section-kicker">RECOMMENDATION</span><p>{{ p['recommendation'] }}</p></div></div>
+  {% if p['status'] == 'Proposed' %}<form method="post" action="{{ url_for('review_improvement_proposal', proposal_id=p['id']) }}" class="v102-review-form"><input name="note" placeholder="Optional review note"><button class="btn secondary" name="status" value="Dismissed">Dismiss</button><button class="btn" name="status" value="Accepted">Accept proposal</button></form>{% else %}<div class="v102-reviewed">Reviewed: {{ p['status'] }}{% if p['review_note'] %} · {{ p['review_note'] }}{% endif %}</div>{% endif %}
+</article>
+{% else %}
+<section class="panel command-panel"><div class="clear-state"><span class="clear-check">✓</span><div><strong>No improvement proposals right now</strong><p>Evidence-backed proposals will appear here when the Control Plane detects repeatable friction.</p></div></div></section>
+{% endfor %}
+</div>
+{% endblock %}

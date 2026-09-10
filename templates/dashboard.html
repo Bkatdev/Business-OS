@@ -77,6 +77,22 @@ Command Center
 
 </div>
 
+<a href="{{ url_for('control_plane') }}" class="v102-control-strip" aria-label="Open Control Plane">
+    <div class="v102-control-state">
+        <span class="v102-status-dot {% if control.prod_quarantine or control.attention %}attention{% endif %}"></span>
+        <div>
+            <span>CONTROL PLANE</span>
+            <strong>{{ 'Protected' if not control.prod_quarantine else 'Attention required' }}</strong>
+        </div>
+    </div>
+    <div class="v102-control-facts">
+        <span><b>{{ control.improvements }}</b> improvement{% if control.improvements != 1 %}s{% endif %}</span>
+        <span><b>{{ control.ledger_events }}</b> ledger event{% if control.ledger_events != 1 %}s{% endif %}</span>
+        <span><b>{{ control.prod_quarantine }}</b> production quarantine</span>
+    </div>
+    <b class="v102-control-arrow">Open Control Plane →</b>
+</a>
+
 <div class="ops-launch-strip">
     <a href="{{ url_for('schedule') }}" class="ops-launch-card">
         <div class="ops-launch-icon">◫</div>
