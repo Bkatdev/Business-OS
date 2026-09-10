@@ -26,6 +26,8 @@ from services.operations import appointment_state, end_from_duration, suggested_
 from services.automation_engine import execute_sms, validate_sms_message
 from services.governance import classify_inbound, quarantine
 from services.security import verify_retell_signature
+from services.version import VERSION, RELEASE_NAME, BUILD_ID
+from services.product_foundation import ensure_product_schema, readiness_for_business, save_profile, activate_business, client_product_view, attention_queue
 from services.system_health import build_health_report
 from services.reliability import (
     create_database_snapshot,
@@ -87,6 +89,9 @@ def inject_global_counts():
     return {
         "global_prospect_count": prospect_count,
         "global_pending_approvals": pending_approvals,
+        "business_os_version": VERSION,
+        "business_os_release": RELEASE_NAME,
+        "business_os_build": BUILD_ID,
     }
 
 
@@ -1723,6 +1728,9 @@ def client_operations(bid):
         (bid,),
     ).fetchall()
 
+    product = client_product_view(conn, business)
+    attention = attention_queue(conn, business_id=bid, limit=12)
+
     conn.close()
 
     open_leads = [lead for lead in leads if lead["status"] not in ("Won", "Lost")]
@@ -1738,8 +1746,10 @@ def client_operations(bid):
     action_queue = build_action_queue(open_leads, limit=10)
 
     return render_template(
-        "client_operations.html",
+        "client_command_center.html",
         business=business,
+        product=product,
+        attention=attention,
         leads=leads,
         recent_calls=recent_calls,
         action_queue=action_queue,
@@ -1787,6 +1797,42 @@ def update_client_retell_agent(bid):
 
     flash("Receptionist mapping updated. Exact routing is enforced.", "success")
     return redirect(url_for("client_operations", bid=bid))
+
+
+@app.route("/client/<int:bid>/onboarding", methods=["GET", "POST"])
+def client_onboarding(bid):
+    conn = connect()
+    ensure_product_schema(conn)
+    business = conn.execute("SELECT * FROM businesses WHERE id = ?", (bid,)).fetchone()
+    if business is None:
+        conn.close()
+        return render_template("404.html"), 404
+    if request.method == "POST":
+        conn.close()
+        save_profile(bid, request.form)
+        flash("Client configuration saved. Activation remains deliberate and gated.", "success")
+        return redirect(url_for("client_onboarding", bid=bid))
+    readiness = readiness_for_business(conn, business)
+    conn.close()
+    return render_template("client_onboarding.html", business=business, readiness=readiness)
+
+
+@app.route("/client/<int:bid>/activate", methods=["POST"])
+def activate_client(bid):
+    ok, message = activate_business(bid)
+    flash(message, "success" if ok else "error")
+    return redirect(url_for("client_onboarding", bid=bid))
+
+
+@app.route("/attention")
+def attention_center():
+    raw = request.args.get("business_id", "").strip()
+    business_id = int(raw) if raw.isdigit() else None
+    conn = connect()
+    ensure_product_schema(conn)
+    items = attention_queue(conn, business_id=business_id, limit=75)
+    conn.close()
+    return render_template("attention_center.html", items=items, business_id=business_id)
 
 
 @app.route("/system-health")
@@ -2361,6 +2407,11 @@ def page_not_found(error):
 
 if __name__ == "__main__":
     init_db()
+    conn = connect()
+    ensure_product_schema(conn)
+    conn.close()
+    print(f"Business OS {VERSION} · {RELEASE_NAME} · {BUILD_ID}")
+    print(f"Project root: {os.path.dirname(os.path.abspath(__file__))}")
     try:
         ensure_daily_snapshot()
     except Exception as exc:

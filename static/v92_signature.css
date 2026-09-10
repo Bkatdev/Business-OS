@@ -1,0 +1,57 @@
+/* Business OS v9.2 Signature Polish. Additive presentation layer only. */
+:root {
+  --bos-accent: #4f46e5;
+  --bos-accent-2: #06b6d4;
+  --bos-accent-soft: rgba(79,70,229,.10);
+  --bos-ink: #0b1020;
+  --bos-sidebar: #0b1220;
+  --bos-sidebar-2: #111827;
+  --bos-line: rgba(15,23,42,.10);
+  --bos-shadow: 0 12px 32px rgba(15,23,42,.08);
+  --bos-shadow-hover: 0 18px 46px rgba(15,23,42,.12);
+}
+
+body { background: #f7f9fc; color: var(--bos-ink); }
+.sidebar { background: linear-gradient(180deg,var(--bos-sidebar),var(--bos-sidebar-2)); box-shadow: 14px 0 38px rgba(15,23,42,.08); }
+.brand-mark { background: linear-gradient(135deg,var(--bos-accent),var(--bos-accent-2)) !important; box-shadow: 0 8px 24px rgba(79,70,229,.28); }
+.status-dot { background: var(--bos-accent-2) !important; box-shadow: 0 0 0 4px rgba(6,182,212,.10); }
+.sidebar-nav a { position: relative; overflow: hidden; transition: background-color .18s ease, transform .18s ease, color .18s ease; }
+.sidebar-nav a:hover { transform: translateX(2px); background: rgba(255,255,255,.055); }
+.sidebar-nav a.active { background: linear-gradient(90deg,rgba(79,70,229,.22),rgba(6,182,212,.08)) !important; box-shadow: inset 3px 0 0 var(--bos-accent-2); }
+.sidebar-nav a.active .nav-icon { color: #67e8f9 !important; }
+.nav-count { background: rgba(99,102,241,.16) !important; color: #c7d2fe !important; }
+
+.topbar { backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); background: rgba(255,255,255,.86) !important; border-bottom: 1px solid var(--bos-line); }
+.page-content { position: relative; }
+.page-content:before { content:""; position:fixed; pointer-events:none; z-index:-1; width:520px; height:520px; right:-170px; top:80px; border-radius:50%; background:radial-gradient(circle,rgba(79,70,229,.08),rgba(6,182,212,.025) 45%,transparent 72%); filter:blur(8px); }
+
+button, .btn, a.button, .topbar-actions a { transition: transform .16s ease, box-shadow .16s ease, filter .16s ease; }
+button:hover, .btn:hover, a.button:hover, .topbar-actions a:hover { transform: translateY(-1px); box-shadow: 0 9px 22px rgba(15,23,42,.11); }
+button:active, .btn:active, a.button:active, .topbar-actions a:active { transform: translateY(0) scale(.985); }
+
+.card, .panel, .metric-card, .stat-card, .v9-card, .v9-panel, .control-panel, .health-card, .client-card, .attention-card, table { border-color: var(--bos-line) !important; box-shadow: var(--bos-shadow); transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s ease, border-color .22s ease; }
+.card:hover, .panel:hover, .metric-card:hover, .stat-card:hover, .v9-card:hover, .v9-panel:hover, .control-panel:hover, .health-card:hover, .client-card:hover, .attention-card:hover { transform: translateY(-2px); box-shadow: var(--bos-shadow-hover); border-color: rgba(79,70,229,.20) !important; }
+
+tbody tr { transition: background-color .16s ease, transform .16s ease; }
+tbody tr:hover { background: rgba(79,70,229,.035) !important; }
+a { text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid rgba(79,70,229,.25); outline-offset: 2px; }
+
+/* Accent legacy greens without touching semantic danger/warning states. */
+.hero, .dashboard-hero, .command-hero { background: linear-gradient(135deg,#111827 0%,#172554 52%,#164e63 100%) !important; position:relative; overflow:hidden; }
+.hero:after, .dashboard-hero:after, .command-hero:after { content:""; position:absolute; width:420px; height:420px; right:-120px; top:-180px; border-radius:50%; border:46px solid rgba(103,232,249,.075); box-shadow:0 0 0 46px rgba(99,102,241,.04); pointer-events:none; }
+
+/* Generic premium emphasis for healthy/success accents. */
+.progress-bar > span, .progress-fill, [class*="progress"] [style*="width"] { background-image: linear-gradient(90deg,var(--bos-accent),var(--bos-accent-2)) !important; }
+
+.bos-reveal { opacity:0; transform:translateY(10px); }
+.bos-reveal.bos-visible { opacity:1; transform:none; transition:opacity .42s ease, transform .42s cubic-bezier(.2,.8,.2,1); }
+.bos-pointer-glow { position:relative; overflow:hidden; }
+.bos-pointer-glow:before { content:""; position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .2s ease; background:radial-gradient(220px circle at var(--bos-x,50%) var(--bos-y,50%),rgba(99,102,241,.075),transparent 68%); }
+.bos-pointer-glow:hover:before { opacity:1; }
+#bos-scroll-progress { position:fixed; left:0; top:0; height:2px; width:0; z-index:9999; background:linear-gradient(90deg,var(--bos-accent),var(--bos-accent-2)); box-shadow:0 0 12px rgba(79,70,229,.35); pointer-events:none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *:before, *:after { scroll-behavior:auto !important; animation:none !important; transition-duration:.01ms !important; }
+  .bos-reveal { opacity:1 !important; transform:none !important; }
+}
