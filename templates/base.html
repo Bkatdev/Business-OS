@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='v92_signature.css') }}?v=1">
     <link rel="stylesheet" href="{{ url_for('static', filename='v102_restore.css') }}?v=1">
     <link rel="stylesheet" href="{{ url_for('static', filename='v103.css') }}?v=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='v104.css') }}?v=1">
 </head>
 <body>
 <div class="app-shell">
@@ -39,7 +40,7 @@
                 <span class="nav-icon">&#9635;</span>
                 <span class="nav-label">Clients</span>
             </a>
-            <a class="{% if request.endpoint in ['leads', 'lead_detail', 'update_lead_status'] %}active{% endif %}" href="{{ url_for('leads') }}" title="Leads">
+            <a class="{% if request.endpoint in ['leads', 'lead_detail', 'update_lead_status', 'set_lead_service_link', 'save_lead_intake_answer'] %}active{% endif %}" href="{{ url_for('leads') }}" title="Leads">
                 <span class="nav-icon">&#9673;</span>
                 <span class="nav-label">Leads</span>
             </a>

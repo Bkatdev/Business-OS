@@ -29,6 +29,10 @@ from services.security import verify_retell_signature
 from services.version import VERSION, RELEASE_NAME, BUILD_ID
 from services.product_foundation import ensure_product_schema, readiness_for_business, save_profile, activate_business, client_product_view, attention_queue
 from services.business_config import ensure_business_config_schema, configuration_view, add_service, toggle_service, add_intake_question, toggle_intake_question
+from services.front_office_intelligence import (
+    ensure_front_office_schema, lead_intelligence, link_lead_service,
+    save_intake_answer, unified_timeline, build_front_office_queue,
+)
 from services.system_health import build_health_report
 from services.control_plane import ensure_control_plane_schema, control_plane_overview, command_center_summary, review_improvement, ledger_event
 from services.reliability import (
@@ -99,8 +103,6 @@ def inject_global_counts():
 
 @app.route("/")
 def dashboard():
-    from services.action_queue import build_action_queue
-
     conn = connect()
     ensure_control_plane_schema(conn)
 
@@ -274,6 +276,10 @@ def dashboard():
         """
     ).fetchone()[0]
 
+    action_queue_total = len(action_queue_rows)
+    action_queue = build_front_office_queue(conn, action_queue_rows, limit=8)
+    top_action = action_queue[0] if action_queue else None
+
     conn.close()
 
     businesses = businesses_with_analysis(rows)
@@ -321,10 +327,6 @@ def dashboard():
         ]
         + [1]
     )
-
-    action_queue_total = len(action_queue_rows)
-    action_queue = build_action_queue(action_queue_rows, limit=8)
-    top_action = action_queue[0] if action_queue else None
 
     return render_template(
         "dashboard.html",
@@ -1364,6 +1366,15 @@ def lead_detail(lead_id):
         (lead_id,),
     ).fetchall()
 
+    intelligence = lead_intelligence(conn, lead_id)
+    timeline = unified_timeline(conn, lead_id)
+    configured_services = []
+    if lead["business_id"]:
+        configured_services = conn.execute(
+            "SELECT * FROM business_services WHERE business_id=? AND active=1 ORDER BY sort_order,id",
+            (lead["business_id"],),
+        ).fetchall()
+
     conn.close()
 
     triage = triage_lead(
@@ -1384,7 +1395,41 @@ def lead_detail(lead_id):
         appointments=appointments,
         messages=messages,
         suggested_message=suggested_follow_up(lead),
+        intelligence=intelligence,
+        unified_timeline=timeline,
+        configured_services=configured_services,
     )
+
+
+@app.route("/lead/<int:lead_id>/service-link", methods=["POST"])
+def set_lead_service_link(lead_id):
+    raw_service = request.form.get("service_id", "").strip()
+    if not raw_service.isdigit():
+        flash("Choose a verified service before saving.", "error")
+        return redirect(url_for("lead_detail", lead_id=lead_id))
+    conn = connect()
+    lead = conn.execute("SELECT id,business_id FROM leads WHERE id=?", (lead_id,)).fetchone()
+    conn.close()
+    if not lead or not lead["business_id"]:
+        flash("This lead must have a proven client owner before a service can be linked.", "error")
+        return redirect(url_for("lead_detail", lead_id=lead_id))
+    ok, message = link_lead_service(lead["business_id"], lead_id, int(raw_service))
+    flash(message, "success" if ok else "error")
+    return redirect(url_for("lead_detail", lead_id=lead_id))
+
+
+@app.route("/lead/<int:lead_id>/intake/<int:question_id>", methods=["POST"])
+def save_lead_intake_answer(lead_id, question_id):
+    conn = connect()
+    lead = conn.execute("SELECT id,business_id FROM leads WHERE id=?", (lead_id,)).fetchone()
+    conn.close()
+    if not lead or not lead["business_id"]:
+        flash("This lead must have a proven client owner before intake can be saved.", "error")
+        return redirect(url_for("lead_detail", lead_id=lead_id))
+    answer = request.form.get("answer_text", "")
+    ok, message = save_intake_answer(lead["business_id"], lead_id, question_id, answer)
+    flash(message, "success" if ok else "error")
+    return redirect(url_for("lead_detail", lead_id=lead_id))
 
 LEAD_STATUSES = [
     "New",
@@ -2503,6 +2548,7 @@ if __name__ == "__main__":
     conn = connect()
     ensure_product_schema(conn)
     ensure_business_config_schema(conn)
+    ensure_front_office_schema(conn)
     ensure_control_plane_schema(conn)
     conn.close()
     print(f"Business OS {VERSION} · {RELEASE_NAME} · {BUILD_ID}")
