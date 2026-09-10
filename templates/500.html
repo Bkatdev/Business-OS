@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}System Issue · Business OS{% endblock %}
+{% block heading %}Business OS protected the workflow{% endblock %}
+{% block content %}
+<div class="incident-page panel">
+  <div class="incident-mark">!</div>
+  <span class="section-kicker">SAFE FAILURE</span>
+  <h2>Something unexpected happened, so Business OS stopped instead of guessing.</h2>
+  <p>The error was contained. No customer-facing action should be assumed successful unless its execution record says so.</p>
+  {% if incident_id %}<div class="incident-id"><span>INCIDENT ID</span><strong>#{{ incident_id }}</strong><small>Use this number when diagnosing the issue.</small></div>{% endif %}
+  <div class="incident-actions"><a class="btn" href="{{ url_for('system_health') }}">Open Reliability Center</a><a class="btn secondary" href="{{ url_for('dashboard') }}">Return to Dashboard</a></div>
+</div>
+{% endblock %}

@@ -375,6 +375,38 @@ def init_db():
         "CREATE INDEX IF NOT EXISTS idx_system_events_created ON system_events(created_at)"
     )
 
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS reliability_runs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            kind TEXT NOT NULL DEFAULT 'Self Test',
+            status TEXT NOT NULL,
+            summary TEXT NOT NULL DEFAULT '',
+            details TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    con.execute(
+        "CREATE INDEX IF NOT EXISTS idx_reliability_runs_created ON reliability_runs(created_at)"
+    )
+
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS data_snapshots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            filename TEXT NOT NULL,
+            size_bytes INTEGER NOT NULL DEFAULT 0,
+            checksum TEXT NOT NULL DEFAULT '',
+            reason TEXT NOT NULL DEFAULT 'Manual',
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    con.execute(
+        "CREATE INDEX IF NOT EXISTS idx_data_snapshots_created ON data_snapshots(created_at)"
+    )
+
     existing = {
         row["name"]
         for row in con.execute("PRAGMA table_info(businesses)")

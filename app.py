@@ -1,3 +1,4 @@
+import os
 import csv
 import io
 import json
@@ -20,9 +21,16 @@ from services.lead_triage import triage_lead
 from services.operations import appointment_state, end_from_duration, suggested_follow_up
 from services.automation_engine import execute_sms, validate_sms_message
 from services.system_health import build_health_report
+from services.reliability import (
+    create_database_snapshot,
+    ensure_daily_snapshot,
+    reliability_dashboard,
+    run_self_test,
+    record_system_event,
+)
 
 app = Flask(__name__)
-app.secret_key = "business-os-local-v2"
+app.secret_key = os.getenv("BUSINESS_OS_SECRET_KEY", "business-os-local-development-only")
 
 
 STATUSES = [
@@ -1729,11 +1737,41 @@ def update_client_retell_agent(bid):
 def system_health():
     conn = connect()
     report = build_health_report(conn)
-    recent_events = conn.execute(
-        "SELECT * FROM system_events ORDER BY id DESC LIMIT 25"
-    ).fetchall()
+    reliability = reliability_dashboard(conn)
+    latest_test = run_self_test(conn, persist=False)
     conn.close()
-    return render_template("system_health.html", report=report, recent_events=recent_events)
+    return render_template(
+        "system_health.html",
+        report=report,
+        reliability=reliability,
+        latest_test=latest_test,
+    )
+
+
+@app.route("/system-health/run-check", methods=["POST"])
+def run_reliability_check():
+    conn = connect()
+    result = run_self_test(conn, persist=True)
+    conn.close()
+    if result["failures"]:
+        flash(f"Self-test found {result['failures']} release-blocking failure(s).", "error")
+    elif result["warnings"]:
+        flash(f"Self-test passed with {result['warnings']} warning(s) to review.", "success")
+    else:
+        flash("Full self-test passed.", "success")
+    return redirect(url_for("system_health"))
+
+
+@app.route("/system-health/snapshot", methods=["POST"])
+def create_system_snapshot():
+    try:
+        snapshot = create_database_snapshot("Manual health-center snapshot")
+    except Exception as exc:
+        record_system_event("Database snapshot failed", str(exc), severity="Error", event_type="Recovery")
+        flash(f"Snapshot failed: {exc}", "error")
+    else:
+        flash(f"Recovery snapshot created: {snapshot['filename']}", "success")
+    return redirect(url_for("system_health"))
 
 
 @app.route("/schedule")
@@ -2229,6 +2267,21 @@ def import_prospects():
     )
 
 
+@app.errorhandler(500)
+def internal_server_error(error):
+    incident_id = None
+    try:
+        incident_id = record_system_event(
+            "Unhandled application error",
+            str(error),
+            severity="Error",
+            event_type="Runtime",
+        )
+    except Exception:
+        pass
+    return render_template("500.html", incident_id=incident_id), 500
+
+
 @app.errorhandler(404)
 def page_not_found(error):
     return (
@@ -2239,7 +2292,13 @@ def page_not_found(error):
 
 if __name__ == "__main__":
     init_db()
+    try:
+        ensure_daily_snapshot()
+    except Exception as exc:
+        # Backup failure should be visible, but must not prevent local startup.
+        print(f"Business OS backup warning: {exc}")
 
+    debug_mode = os.getenv("BUSINESS_OS_DEBUG", "0").strip().lower() in {"1", "true", "yes", "on"}
     app.run(
-        debug=True
+        debug=debug_mode
     )

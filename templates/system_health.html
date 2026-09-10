@@ -1,22 +1,100 @@
 {% extends "base.html" %}
-{% block title %}System Health · Business OS{% endblock %}
+{% block title %}Reliability · Business OS{% endblock %}
 {% block heading %}Reliability Center{% endblock %}
 {% block content %}
-<div class="health-hero {{ report.status|lower }}">
-  <div><span class="section-kicker">RELIABILITY LAYER</span><h2>{{ report.status == 'Healthy' and 'Everything important is behaving.' or 'A few things need attention.' }}</h2><p>This page is designed for a five-minute daily check. Business OS fails closed when ownership or recipient safety is uncertain.</p></div>
-  <div class="health-score"><strong>{{ report.healthy_checks }}/{{ report.total_checks }}</strong><span>checks passing</span><b>{{ report.status }}</b></div>
+<div class="reliability-hero {{ report.status|lower }}">
+  <div class="reliability-hero-copy">
+    <div class="eyebrow-row"><span class="section-kicker">AUTOPILOT SAFETY</span><span class="live-dot"><i></i> FAIL-CLOSED ENGINE</span></div>
+    <h2>{{ 'Business OS is ready for normal operation.' if report.status == 'Healthy' else 'Business OS wants your attention.' }}</h2>
+    <p>This is the page you should be able to check between classes. It verifies the operating system, client boundaries, automation safety, and recovery readiness without you digging through code.</p>
+    <div class="reliability-actions">
+      <form method="POST" action="{{ url_for('run_reliability_check') }}"><button class="btn" type="submit">Run full self-test</button></form>
+      <form method="POST" action="{{ url_for('create_system_snapshot') }}"><button class="btn secondary" type="submit">Create recovery snapshot</button></form>
+    </div>
+  </div>
+  <div class="reliability-score-card">
+    <span>SYSTEM STATUS</span>
+    <strong>{{ report.healthy_checks }}/{{ report.total_checks }}</strong>
+    <small>core safeguards passing</small>
+    <b class="reliability-status {{ report.status|lower }}">{{ report.status }}</b>
+  </div>
 </div>
-<div class="health-metrics">
- <div><span>Unassigned leads</span><strong>{{ report.unassigned_leads }}</strong><small>Can be reviewed, never auto-sent</small></div>
- <div><span>Failed messages</span><strong>{{ report.failed_messages }}</strong><small>Needs operator attention</small></div>
- <div><span>Blocked · 24h</span><strong>{{ report.blocked_24h }}</strong><small>Safety engine interventions</small></div>
- <div><span>Client mappings</span><strong>{{ report.mapped_clients }}/{{ report.clients }}</strong><small>Receptionists mapped to clients</small></div>
+
+<div class="health-metrics reliability-metrics">
+ <div><span>Database recovery</span><strong>{{ 'Ready' if reliability.backup_exists else 'Needs snapshot' }}</strong><small>{{ reliability.last_snapshot.created_at if reliability.last_snapshot else 'No local snapshot recorded yet' }}</small></div>
+ <div><span>Unassigned leads</span><strong>{{ report.unassigned_leads }}</strong><small>Never eligible for customer automation</small></div>
+ <div><span>Failed messages</span><strong>{{ report.failed_messages }}</strong><small>Operator intervention required</small></div>
+ <div><span>Client mappings</span><strong>{{ report.mapped_clients }}/{{ report.clients }}</strong><small>Receptionist routing coverage</small></div>
 </div>
-<div class="health-grid">
- <section class="panel health-checks"><div class="ops-section-title"><div><span class="section-kicker">AUTOMATED CHECKS</span><h3>Core system safeguards</h3></div></div>
- {% for check in report.checks %}<div class="health-check"><span class="health-check-icon {{ 'pass' if check.ok else 'warn' }}">{{ '✓' if check.ok else '!' }}</span><div><strong>{{ check.name }}</strong><p>{{ check.detail }}</p></div><b>{{ 'PASS' if check.ok else 'CHECK' }}</b></div>{% endfor %}
- </section>
- <aside class="control-panel daily-check"><span class="section-kicker">OWNER MODE</span><h3>Your daily five-minute check</h3><p>You should not need to babysit this system. When live automation arrives, this screen will be the first place to look.</p><div class="safety-row"><span>Live customer sending</span><strong class="status-off">Locked</strong></div><div class="safety-row"><span>Unknown client execution</span><strong>Blocked</strong></div><div class="safety-row"><span>Phone mismatch execution</span><strong>Blocked</strong></div><div class="safety-row"><span>Audit trail</span><strong>On</strong></div></aside>
+
+<div class="reliability-grid">
+  <main>
+    <section class="panel reliability-section">
+      <div class="ops-section-title"><div><span class="section-kicker">SELF TEST</span><h3>Release-blocking safeguards</h3><p>A fast, non-destructive inspection of the data and automation foundation.</p></div>{% if latest_test %}<span class="test-result {{ latest_test.status|lower }}">{{ latest_test.status }}</span>{% endif %}</div>
+      {% if latest_test %}
+        <div class="self-test-summary"><strong>{{ latest_test.passes }}/{{ latest_test.total }} passing</strong><span>{{ latest_test.warnings }} warning(s)</span><span>{{ latest_test.failures }} failure(s)</span><small>{{ latest_test.created_at }}</small></div>
+        <div class="reliability-check-list">
+        {% for check in latest_test.checks %}
+          <div class="reliability-check {{ check.status }}"><span class="check-orb">{{ '✓' if check.status == 'pass' else '!' }}</span><div><strong>{{ check.name }}</strong><p>{{ check.detail }}</p></div><b>{{ check.status|upper }}</b></div>
+        {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-runway"><strong>No self-test run yet.</strong><span>Run the full self-test before a demo, release, or live-provider change.</span></div>
+      {% endif %}
+    </section>
+
+    <section class="panel reliability-section section-gap">
+      <div class="ops-section-title"><div><span class="section-kicker">CORE HEALTH</span><h3>Always-on safeguards</h3></div></div>
+      {% for check in report.checks %}
+      <div class="health-check"><span class="health-check-icon {{ 'pass' if check.ok else 'warn' }}">{{ '✓' if check.ok else '!' }}</span><div><strong>{{ check.name }}</strong><p>{{ check.detail }}</p></div><b>{{ 'PASS' if check.ok else 'CHECK' }}</b></div>
+      {% endfor %}
+    </section>
+  </main>
+
+  <aside class="reliability-side">
+    <section class="control-panel recovery-card">
+      <span class="section-kicker">RECOVERY</span><h3>Database snapshots</h3>
+      <p>Business OS keeps local SQLite recovery points outside Git. Automatic startup snapshots are limited to one per day and old snapshots rotate out.</p>
+      <div class="recovery-state"><span>Storage</span><strong>local_backups/database</strong></div>
+      <div class="recovery-state"><span>Retention</span><strong>20 snapshots</strong></div>
+      <div class="recovery-state"><span>Integrity check</span><strong>Before every snapshot</strong></div>
+      {% if reliability.snapshots %}
+      <div class="snapshot-list">
+        {% for snap in reliability.snapshots %}<div><span>{{ snap.reason }}</span><strong>{{ snap.filename }}</strong><small>{{ snap.created_at }} · {{ ((snap.size_bytes or 0) / 1024)|round(1) }} KB</small></div>{% endfor %}
+      </div>
+      {% else %}<div class="no-snapshots">No snapshots recorded yet.</div>{% endif %}
+    </section>
+
+    <section class="control-panel section-gap operator-contract">
+      <span class="section-kicker">LOW-MAINTENANCE CONTRACT</span><h3>What should wake you up?</h3>
+      <div class="safety-row"><span>Normal leads + calls</span><strong>Leave alone</strong></div>
+      <div class="safety-row"><span>Unknown client ownership</span><strong>Auto-block</strong></div>
+      <div class="safety-row"><span>Recipient mismatch</span><strong>Auto-block</strong></div>
+      <div class="safety-row"><span>Database corruption</span><strong class="status-off">Stop + recover</strong></div>
+      <div class="safety-row"><span>Live provider failures</span><strong class="status-off">Escalate</strong></div>
+      <p class="control-note">The product should handle normal work. You should handle exceptions, not babysit every call.</p>
+    </section>
+  </aside>
 </div>
-<div class="panel reliability-principle"><span>DESIGN RULE</span><strong>If Business OS is unsure, it stops instead of guessing.</strong><p>That is intentional. Reliability matters more than pretending automation succeeded.</p></div>
+
+{% if reliability.recent_events %}
+<section class="panel incident-ledger section-gap">
+  <div class="ops-section-title"><div><span class="section-kicker">INCIDENT LEDGER</span><h3>What Business OS noticed</h3><p>When something fails later, this gives us a timestamped trail instead of relying on memory.</p></div><span class="count-bubble">{{ reliability.recent_events|length }}</span></div>
+  <div class="incident-list">
+  {% for event in reliability.recent_events %}
+    <div class="incident-row"><span class="incident-severity {{ event.severity|lower }}">{{ event.severity }}</span><div><strong>{{ event.title }}</strong><p>{{ event.details or event.event_type }}</p></div><small>#{{ event.id }} · {{ event.created_at }}</small></div>
+  {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="panel release-gate section-gap">
+  <div><span class="section-kicker">RELEASE GATE</span><h3>Before we ever unlock live customer actions</h3><p>These are deliberate blockers, not missing polish.</p></div>
+  <div class="release-gate-grid">
+    <div><span>01</span><strong>Self-test</strong><small>No release-blocking failures</small></div>
+    <div><span>02</span><strong>Recovery snapshot</strong><small>Known-good database recovery point</small></div>
+    <div><span>03</span><strong>Client identity</strong><small>Every execution tied to one active client</small></div>
+    <div><span>04</span><strong>Provider safety</strong><small>Kill switch, retries, delivery state</small></div>
+  </div>
+</section>
 {% endblock %}
