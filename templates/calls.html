@@ -1,44 +1,365 @@
 {% extends "base.html" %}
 
+{% block title %}
+Business OS · Calls
+{% endblock %}
+
+{% block heading %}
+Calls
+{% endblock %}
+
+
+{% block actions %}
+
+<a
+    class="btn secondary"
+    href="{{ url_for('leads') }}"
+>
+    View Leads
+</a>
+
+{% endblock %}
+
+
 {% block content %}
 
-<div class="page-header">
+<div class="operations-hero">
+
     <div>
-        <h1>Calls</h1>
-        <p>Inbound AI receptionist calls and transcripts.</p>
+
+        <span class="section-kicker">
+            AI RECEPTIONIST
+        </span>
+
+        <h2>
+            Call Intelligence
+        </h2>
+
+        <p>
+            Review inbound conversations,
+            call outcomes, summaries, and
+            the leads created from them.
+        </p>
+
     </div>
+
+
+    <div class="operations-count">
+
+        <span>
+            Recorded calls
+        </span>
+
+        <strong>
+            {{ calls|length }}
+        </strong>
+
+    </div>
+
 </div>
 
-<div class="card">
-    {% if calls %}
-        <table>
+
+<div class="operations-toolbar">
+
+    <div class="search-box">
+
+        <span class="search-icon">
+            ⌕
+        </span>
+
+        <input
+            type="search"
+            placeholder="Search caller, phone, summary..."
+            autocomplete="off"
+            data-call-search
+        >
+
+    </div>
+
+
+    <select data-call-status>
+
+        <option value="">
+            All call statuses
+        </option>
+
+        <option value="completed">
+            Completed
+        </option>
+
+    </select>
+
+
+    <button
+        type="button"
+        class="filter-reset"
+        data-call-reset
+    >
+        Clear
+    </button>
+
+</div>
+
+
+<div class="results-summary">
+
+    <span>
+        Showing
+        <strong data-call-count>
+            {{ calls|length }}
+        </strong>
+        call<span data-call-plural>
+            {% if calls|length != 1 %}s{% endif %}
+        </span>
+    </span>
+
+</div>
+
+
+<div class="operations-panel">
+
+{% if calls %}
+
+    <div class="operations-table-wrap">
+
+        <table class="operations-table calls-table">
+
             <thead>
+
                 <tr>
                     <th>Caller</th>
-                    <th>Phone</th>
+                    <th>Summary</th>
                     <th>Business</th>
                     <th>Duration</th>
                     <th>Status</th>
                     <th>Created</th>
+                    <th></th>
                 </tr>
+
             </thead>
 
+
             <tbody>
-                {% for call in calls %}
-                    <tr>
-                        <td>{{ call["caller_name"] or "Unknown" }}</td>
-                        <td>{{ call["caller_phone"] or "—" }}</td>
-                        <td>{{ call["business_name"] or "—" }}</td>
-                        <td>{{ call["duration_seconds"] }} sec</td>
-                        <td>{{ call["call_status"] }}</td>
-                        <td>{{ call["created_at"] }}</td>
-                    </tr>
-                {% endfor %}
+
+            {% for call in calls %}
+
+                <tr
+                    class="
+                    {% if call['lead_id'] %}
+                        clickable-row
+                    {% endif %}
+                    "
+                    data-call-row
+                    {% if call["lead_id"] %}
+                    data-href="{{ url_for(
+                        'lead_detail',
+                        lead_id=call['lead_id']
+                    ) }}"
+                    {% endif %}
+                    data-status="{{
+                        (call['call_status'] or '')
+                        | lower
+                    }}"
+                    data-search="{{
+                        call['caller_name'] or ''
+                    }} {{
+                        call['caller_phone'] or ''
+                    }} {{
+                        call['summary'] or ''
+                    }} {{
+                        call['business_name'] or ''
+                    }}"
+                >
+
+                    <td>
+
+                        <div class="customer-cell">
+
+                            <div class="customer-avatar call-avatar">
+                                ☎
+                            </div>
+
+
+                            <div>
+
+                                {% if call["lead_id"] %}
+
+                                <a
+                                    class="customer-name"
+                                    href="{{ url_for(
+                                        'lead_detail',
+                                        lead_id=call['lead_id']
+                                    ) }}"
+                                >
+                                    {{
+                                        call["caller_name"]
+                                        or "Unknown Caller"
+                                    }}
+                                </a>
+
+                                {% else %}
+
+                                <strong class="customer-name">
+                                    {{
+                                        call["caller_name"]
+                                        or "Unknown Caller"
+                                    }}
+                                </strong>
+
+                                {% endif %}
+
+                                <span>
+                                    {{
+                                        call["caller_phone"]
+                                        or "No phone provided"
+                                    }}
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </td>
+
+
+                    <td>
+
+                        <div class="summary-preview">
+
+                            {{
+                                call["summary"]
+                                or "No call summary available."
+                            }}
+
+                        </div>
+
+                    </td>
+
+
+                    <td>
+
+                        <span class="source-label">
+                            {{
+                                call["business_name"]
+                                or "Demo / Unassigned"
+                            }}
+                        </span>
+
+                    </td>
+
+
+                    <td>
+
+                        {% set seconds =
+                            call["duration_seconds"] or 0
+                        %}
+
+                        <span class="duration-value">
+
+                            {% if seconds >= 60 %}
+
+                                {{
+                                    seconds // 60
+                                }}m
+                                {{
+                                    seconds % 60
+                                }}s
+
+                            {% else %}
+
+                                {{ seconds }}s
+
+                            {% endif %}
+
+                        </span>
+
+                    </td>
+
+
+                    <td>
+
+                        <span class="ops-pill completed">
+                            <span class="pill-dot"></span>
+
+                            {{
+                                call["call_status"]
+                                or "Completed"
+                            }}
+                        </span>
+
+                    </td>
+
+
+                    <td>
+
+                        <span class="created-value">
+                            {{ call["created_at"] }}
+                        </span>
+
+                    </td>
+
+
+                    <td class="row-action">
+
+                        {% if call["lead_id"] %}
+                            →
+                        {% endif %}
+
+                    </td>
+
+                </tr>
+
+            {% endfor %}
+
             </tbody>
+
         </table>
-    {% else %}
-        <p>No calls yet.</p>
-    {% endif %}
+
+    </div>
+
+
+    <div
+        class="filtered-empty"
+        data-call-empty
+        hidden
+    >
+
+        <div class="empty-icon">
+            ⌕
+        </div>
+
+        <h3>
+            No matching calls
+        </h3>
+
+        <p>
+            Change or clear your filters.
+        </p>
+
+    </div>
+
+
+{% else %}
+
+    <div class="operations-empty">
+
+        <div class="empty-icon">
+            ☎
+        </div>
+
+        <h3>
+            No calls yet
+        </h3>
+
+        <p>
+            Completed AI receptionist calls
+            will appear here automatically.
+        </p>
+
+    </div>
+
+{% endif %}
+
 </div>
 
 {% endblock %}

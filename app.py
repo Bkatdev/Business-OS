@@ -117,6 +117,100 @@ def dashboard():
         """
     ).fetchone()[0]
 
+    total_leads = conn.execute(
+        """
+        SELECT COUNT(*)
+        FROM leads
+        """
+    ).fetchone()[0]
+
+    new_leads = conn.execute(
+        """
+        SELECT COUNT(*)
+        FROM leads
+        WHERE status = 'New'
+        """
+    ).fetchone()[0]
+
+    urgent_leads_count = conn.execute(
+        """
+        SELECT COUNT(*)
+        FROM leads
+        WHERE priority = 'Urgent'
+          AND status NOT IN ('Won', 'Lost')
+        """
+    ).fetchone()[0]
+
+    needs_follow_up = conn.execute(
+        """
+        SELECT COUNT(*)
+        FROM leads
+        WHERE status IN ('New', 'Contacted')
+          AND appointment_status != 'Scheduled'
+        """
+    ).fetchone()[0]
+
+    contacted_leads = conn.execute(
+        """
+        SELECT COUNT(*)
+        FROM leads
+        WHERE status = 'Contacted'
+        """
+    ).fetchone()[0]
+
+    scheduled_leads = conn.execute(
+        """
+        SELECT COUNT(*)
+        FROM leads
+        WHERE status = 'Estimate Scheduled'
+           OR appointment_status = 'Scheduled'
+        """
+    ).fetchone()[0]
+
+    won_leads = conn.execute(
+        """
+        SELECT COUNT(*)
+        FROM leads
+        WHERE status = 'Won'
+        """
+    ).fetchone()[0]
+
+    lost_leads = conn.execute(
+        """
+        SELECT COUNT(*)
+        FROM leads
+        WHERE status = 'Lost'
+        """
+    ).fetchone()[0]
+
+    recent_leads = conn.execute(
+        """
+        SELECT
+            leads.*,
+            businesses.name AS business_name
+        FROM leads
+        LEFT JOIN businesses
+            ON businesses.id = leads.business_id
+        ORDER BY leads.id DESC
+        LIMIT 6
+        """
+    ).fetchall()
+
+    urgent_leads = conn.execute(
+        """
+        SELECT
+            leads.*,
+            businesses.name AS business_name
+        FROM leads
+        LEFT JOIN businesses
+            ON businesses.id = leads.business_id
+        WHERE leads.priority = 'Urgent'
+          AND leads.status NOT IN ('Won', 'Lost')
+        ORDER BY leads.id DESC
+        LIMIT 4
+        """
+    ).fetchall()
+
     conn.close()
 
     businesses = businesses_with_analysis(rows)
@@ -125,6 +219,44 @@ def dashboard():
         1
         for business in businesses
         if business["analysis"]["level"] == "High"
+    )
+
+    closed_leads = (
+        won_leads + lost_leads
+    )
+
+    if closed_leads:
+        conversion_rate = round(
+            (won_leads / closed_leads) * 100
+        )
+    else:
+        conversion_rate = 0
+
+    pipeline = [
+        {
+            "name": "New",
+            "count": new_leads,
+        },
+        {
+            "name": "Contacted",
+            "count": contacted_leads,
+        },
+        {
+            "name": "Estimate Scheduled",
+            "count": scheduled_leads,
+        },
+        {
+            "name": "Won",
+            "count": won_leads,
+        },
+    ]
+
+    pipeline_max = max(
+        [
+            stage["count"]
+            for stage in pipeline
+        ]
+        + [1]
     )
 
     return render_template(
@@ -136,6 +268,17 @@ def dashboard():
         audited=audited,
         discovered=google_prospects,
         pending=pending_approvals,
+        total_leads=total_leads,
+        new_leads=new_leads,
+        urgent_leads_count=urgent_leads_count,
+        needs_follow_up=needs_follow_up,
+        scheduled_leads=scheduled_leads,
+        won_leads=won_leads,
+        conversion_rate=conversion_rate,
+        recent_leads=recent_leads,
+        urgent_leads=urgent_leads,
+        pipeline=pipeline,
+        pipeline_max=pipeline_max,
     )
 
 

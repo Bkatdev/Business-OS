@@ -1,3 +1,614 @@
-{% extends 'base.html' %}{% block heading %}Opportunity Dashboard{% endblock %}{% block actions %}<a class='btn' href='{{url_for("prospects")}}'>Find Businesses</a>{% endblock %}{% block content %}
-<div class='hero'><span>REAL DATA PIPELINE</span><h2>Discover → Audit → Score → Review</h2><p>Business OS now separates real evidence from assumptions before a prospect earns website-feature opportunity points.</p></div>
-<div class='kpis'><div><span>Total prospects</span><strong>{{total}}</strong></div><div><span>Google prospects</span><strong>{{discovered}}</strong></div><div><span>Audited</span><strong>{{audited}}</strong></div><div><span>High opportunity</span><strong>{{high}}</strong></div></div><div class='panel'><h3>Recent prospects</h3>{% include '_table.html' %}</div>{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}
+Business OS · Command Center
+{% endblock %}
+
+{% block heading %}
+Command Center
+{% endblock %}
+
+{% block actions %}
+<a
+    class="btn secondary"
+    href="{{ url_for('prospects') }}"
+>
+    Find Prospects
+</a>
+
+<a
+    class="btn"
+    href="{{ url_for('leads') }}"
+>
+    View Leads
+</a>
+{% endblock %}
+
+
+{% block content %}
+
+<div class="command-hero">
+
+    <div class="command-hero-copy">
+
+        <div class="eyebrow">
+            AI FRONT OFFICE
+        </div>
+
+        <h2>
+            Know what needs attention
+            before opportunities go cold.
+        </h2>
+
+        <p>
+            Business OS brings incoming leads,
+            calls, estimates, prospect research,
+            and follow-up into one operating
+            view.
+        </p>
+
+    </div>
+
+
+    <div class="command-hero-stats">
+
+        <div>
+            <span>
+                Leads captured
+            </span>
+
+            <strong>
+                {{ total_leads }}
+            </strong>
+        </div>
+
+
+        <div>
+            <span>
+                Closed win rate
+            </span>
+
+            <strong>
+                {{ conversion_rate }}%
+            </strong>
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="section-heading">
+
+    <div>
+        <span class="section-kicker">
+            INCOMING DEMAND
+        </span>
+
+        <h2>
+            Front Office
+        </h2>
+    </div>
+
+    <a
+        href="{{ url_for('leads') }}"
+        class="text-link"
+    >
+        Open all leads →
+    </a>
+
+</div>
+
+
+<div class="metric-grid">
+
+    <a
+        href="{{ url_for('leads') }}"
+        class="metric-card"
+    >
+        <div class="metric-top">
+            <span class="metric-icon">
+                ◎
+            </span>
+
+            <span class="metric-label">
+                New Leads
+            </span>
+        </div>
+
+        <strong>
+            {{ new_leads }}
+        </strong>
+
+        <p>
+            Newly captured opportunities.
+        </p>
+    </a>
+
+
+    <a
+        href="{{ url_for('leads') }}"
+        class="metric-card urgent"
+    >
+        <div class="metric-top">
+            <span class="metric-icon">
+                !
+            </span>
+
+            <span class="metric-label">
+                Urgent
+            </span>
+        </div>
+
+        <strong>
+            {{ urgent_leads_count }}
+        </strong>
+
+        <p>
+            Open leads marked urgent.
+        </p>
+    </a>
+
+
+    <a
+        href="{{ url_for('leads') }}"
+        class="metric-card"
+    >
+        <div class="metric-top">
+            <span class="metric-icon">
+                ↗
+            </span>
+
+            <span class="metric-label">
+                Need Follow-Up
+            </span>
+        </div>
+
+        <strong>
+            {{ needs_follow_up }}
+        </strong>
+
+        <p>
+            Open leads without a scheduled estimate.
+        </p>
+    </a>
+
+
+    <a
+        href="{{ url_for('leads') }}"
+        class="metric-card"
+    >
+        <div class="metric-top">
+            <span class="metric-icon">
+                ◷
+            </span>
+
+            <span class="metric-label">
+                Estimates Scheduled
+            </span>
+        </div>
+
+        <strong>
+            {{ scheduled_leads }}
+        </strong>
+
+        <p>
+            Leads with estimates on the board.
+        </p>
+    </a>
+
+
+    <a
+        href="{{ url_for('leads') }}"
+        class="metric-card positive"
+    >
+        <div class="metric-top">
+            <span class="metric-icon">
+                ✓
+            </span>
+
+            <span class="metric-label">
+                Won
+            </span>
+        </div>
+
+        <strong>
+            {{ won_leads }}
+        </strong>
+
+        <p>
+            Opportunities marked as won.
+        </p>
+    </a>
+
+</div>
+
+
+<div class="dashboard-grid">
+
+    <div class="dashboard-main">
+
+        <div class="panel command-panel">
+
+            <div class="panel-heading">
+
+                <div>
+                    <span class="section-kicker">
+                        PIPELINE
+                    </span>
+
+                    <h3>
+                        Lead Progress
+                    </h3>
+                </div>
+
+                <span class="panel-meta">
+                    {{ total_leads }} total leads
+                </span>
+
+            </div>
+
+
+            <div class="pipeline-chart">
+
+                {% for stage in pipeline %}
+
+                <div class="pipeline-row">
+
+                    <div class="pipeline-label">
+                        <span>
+                            {{ stage["name"] }}
+                        </span>
+
+                        <strong>
+                            {{ stage["count"] }}
+                        </strong>
+                    </div>
+
+
+                    <div class="pipeline-track">
+
+                        <div
+                            class="pipeline-fill"
+                            style="width:
+                                {{
+                                    (
+                                        stage['count']
+                                        / pipeline_max
+                                        * 100
+                                    )
+                                    | round
+                                }}%;
+                            "
+                        ></div>
+
+                    </div>
+
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+
+        <div class="panel command-panel">
+
+            <div class="panel-heading">
+
+                <div>
+                    <span class="section-kicker">
+                        ACTIVITY
+                    </span>
+
+                    <h3>
+                        Recent Leads
+                    </h3>
+                </div>
+
+                <a
+                    href="{{ url_for('leads') }}"
+                    class="text-link"
+                >
+                    View all →
+                </a>
+
+            </div>
+
+
+            {% if recent_leads %}
+
+            <div class="lead-feed">
+
+                {% for lead in recent_leads %}
+
+                <a
+                    class="lead-feed-row"
+                    href="{{ url_for(
+                        'lead_detail',
+                        lead_id=lead['id']
+                    ) }}"
+                >
+
+                    <div class="lead-avatar">
+                        {{
+                            (
+                                lead["caller_name"]
+                                or "?"
+                            )[0]
+                            | upper
+                        }}
+                    </div>
+
+
+                    <div class="lead-feed-main">
+
+                        <div class="lead-feed-name">
+                            {{
+                                lead["caller_name"]
+                                or "Unknown Caller"
+                            }}
+                        </div>
+
+                        <div class="lead-feed-detail">
+                            {{
+                                lead["service_type"]
+                                or "Service not specified"
+                            }}
+
+                            {% if lead["preferred_time"] %}
+                                ·
+                                {{ lead["preferred_time"] }}
+                            {% endif %}
+                        </div>
+
+                    </div>
+
+
+                    <div class="lead-feed-right">
+
+                        {% if lead["priority"] == "Urgent" %}
+                        <span class="status-pill urgent">
+                            Urgent
+                        </span>
+
+                        {% else %}
+                        <span class="status-pill">
+                            {{ lead["status"] }}
+                        </span>
+                        {% endif %}
+
+                        <span class="row-arrow">
+                            →
+                        </span>
+
+                    </div>
+
+                </a>
+
+                {% endfor %}
+
+            </div>
+
+
+            {% else %}
+
+            <div class="empty-state">
+                <div class="empty-icon">
+                    ◎
+                </div>
+
+                <h4>
+                    No leads yet
+                </h4>
+
+                <p>
+                    New receptionist leads will
+                    appear here automatically.
+                </p>
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <div class="dashboard-side">
+
+        <div class="panel command-panel urgent-panel">
+
+            <div class="panel-heading">
+
+                <div>
+                    <span class="section-kicker danger">
+                        ATTENTION
+                    </span>
+
+                    <h3>
+                        Urgent Queue
+                    </h3>
+                </div>
+
+                <span class="count-bubble">
+                    {{ urgent_leads_count }}
+                </span>
+
+            </div>
+
+
+            {% if urgent_leads %}
+
+                <div class="urgent-list">
+
+                    {% for lead in urgent_leads %}
+
+                    <a
+                        href="{{ url_for(
+                            'lead_detail',
+                            lead_id=lead['id']
+                        ) }}"
+                        class="urgent-item"
+                    >
+
+                        <div>
+                            <strong>
+                                {{
+                                    lead["caller_name"]
+                                    or "Unknown Caller"
+                                }}
+                            </strong>
+
+                            <span>
+                                {{
+                                    lead["service_type"]
+                                    or "Service request"
+                                }}
+                            </span>
+
+                            {% if lead["safety_flag"] %}
+                            <small>
+                                {{ lead["safety_flag"] }}
+                            </small>
+                            {% endif %}
+                        </div>
+
+                        <span>
+                            →
+                        </span>
+
+                    </a>
+
+                    {% endfor %}
+
+                </div>
+
+
+            {% else %}
+
+                <div class="clear-state">
+
+                    <span class="clear-check">
+                        ✓
+                    </span>
+
+                    <div>
+                        <strong>
+                            No open urgent leads
+                        </strong>
+
+                        <p>
+                            Nothing currently requires
+                            urgent escalation.
+                        </p>
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+
+        <div class="panel command-panel">
+
+            <div class="panel-heading">
+
+                <div>
+                    <span class="section-kicker">
+                        GROWTH ENGINE
+                    </span>
+
+                    <h3>
+                        Prospecting
+                    </h3>
+                </div>
+
+            </div>
+
+
+            <div class="mini-stats">
+
+                <div>
+                    <span>
+                        Prospects
+                    </span>
+
+                    <strong>
+                        {{ total }}
+                    </strong>
+                </div>
+
+
+                <div>
+                    <span>
+                        Google
+                    </span>
+
+                    <strong>
+                        {{ discovered }}
+                    </strong>
+                </div>
+
+
+                <div>
+                    <span>
+                        Audited
+                    </span>
+
+                    <strong>
+                        {{ audited }}
+                    </strong>
+                </div>
+
+
+                <div>
+                    <span>
+                        High Opportunity
+                    </span>
+
+                    <strong>
+                        {{ high }}
+                    </strong>
+                </div>
+
+            </div>
+
+
+            <a
+                href="{{ url_for('prospects') }}"
+                class="panel-button"
+            >
+                Open Opportunity Finder
+                <span>→</span>
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="section-heading lower">
+
+    <div>
+        <span class="section-kicker">
+            PROSPECT RESEARCH
+        </span>
+
+        <h2>
+            Recent Prospects
+        </h2>
+    </div>
+
+</div>
+
+
+<div class="panel">
+    {% include "_table.html" %}
+</div>
+
+{% endblock %}

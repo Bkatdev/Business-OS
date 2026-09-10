@@ -1,6 +1,317 @@
-<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>{% block title %}Business OS{% endblock %}</title><link rel='stylesheet' href='{{ url_for("static",filename="styles.css") }}'></head><body>
-<div class='shell'><aside><div class='brand'><b>Business OS</b><span>AI Growth Platform</span></div><nav>
-<a href='{{ url_for("dashboard") }}'>Dashboard</a><a href='{{ url_for("prospects") }}'>Prospects <span>{{ global_prospect_count }}</span></a><a href='{{ url_for("audits") }}'>Audits</a><a href='{{ url_for("agents") }}'>Agents</a><a href='{{ url_for("approvals") }}'>Approvals</a><a href='{{ url_for("clients") }}'>Clients</a></nav><div class='foot'>Local v2 · evidence first</div></aside>
-<main><header><div><small>BUSINESS OS</small><h1>{% block heading %}Command Center{% endblock %}</h1></div><div class='actions'>{% block actions %}{% endblock %}</div></header>
-{% with msgs=get_flashed_messages(with_categories=true) %}{% if msgs %}<div class='flashes'>{% for cat,msg in msgs %}<div class='flash {{cat}}'>{{msg}}</div>{% endfor %}</div>{% endif %}{% endwith %}
-<section>{% block content %}{% endblock %}</section></main></div><script src='{{ url_for("static",filename="app.js") }}'></script></body></html>
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>
+        {% block title %}Business OS{% endblock %}
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for(
+            'static',
+            filename='styles.css'
+        ) }}"
+    >
+</head>
+
+
+<body>
+
+<div class="app-shell">
+
+    <aside class="sidebar">
+
+        <div class="sidebar-brand">
+
+            <div class="brand-mark">
+                B
+            </div>
+
+            <div class="brand-copy">
+                <strong>Business OS</strong>
+                <span>AI Growth Platform</span>
+            </div>
+
+            <button
+                class="sidebar-toggle"
+                type="button"
+                aria-label="Collapse sidebar"
+                title="Collapse sidebar"
+                data-sidebar-toggle
+            >
+                ‹
+            </button>
+
+        </div>
+
+
+        <div class="sidebar-section-label">
+            Command Center
+        </div>
+
+
+        <nav class="sidebar-nav">
+
+            <a
+                class="{% if request.endpoint == 'dashboard' %}
+                    active
+                {% endif %}"
+                href="{{ url_for('dashboard') }}"
+                title="Dashboard"
+            >
+                <span class="nav-icon">⌂</span>
+
+                <span class="nav-label">
+                    Dashboard
+                </span>
+            </a>
+
+
+            <a
+                class="{% if request.endpoint in [
+                    'leads',
+                    'lead_detail',
+                    'update_lead_status'
+                ] %}
+                    active
+                {% endif %}"
+                href="{{ url_for('leads') }}"
+                title="Leads"
+            >
+                <span class="nav-icon">◎</span>
+
+                <span class="nav-label">
+                    Leads
+                </span>
+            </a>
+
+
+            <a
+                class="{% if request.endpoint == 'calls' %}
+                    active
+                {% endif %}"
+                href="{{ url_for('calls') }}"
+                title="Calls"
+            >
+                <span class="nav-icon">☎</span>
+
+                <span class="nav-label">
+                    Calls
+                </span>
+            </a>
+
+        </nav>
+
+
+        <div class="sidebar-section-label">
+            Growth
+        </div>
+
+
+        <nav class="sidebar-nav">
+
+            <a
+                class="{% if request.endpoint in [
+                    'prospects',
+                    'business_detail'
+                ] %}
+                    active
+                {% endif %}"
+                href="{{ url_for('prospects') }}"
+                title="Prospects"
+            >
+                <span class="nav-icon">⌕</span>
+
+                <span class="nav-label">
+                    Prospects
+                </span>
+
+                <span class="nav-count">
+                    {{ global_prospect_count }}
+                </span>
+            </a>
+
+
+            <a
+                class="{% if request.endpoint == 'audits' %}
+                    active
+                {% endif %}"
+                href="{{ url_for('audits') }}"
+                title="Audits"
+            >
+                <span class="nav-icon">◇</span>
+
+                <span class="nav-label">
+                    Audits
+                </span>
+            </a>
+
+
+            <a
+                class="{% if request.endpoint == 'agents' %}
+                    active
+                {% endif %}"
+                href="{{ url_for('agents') }}"
+                title="Agents"
+            >
+                <span class="nav-icon">✦</span>
+
+                <span class="nav-label">
+                    Agents
+                </span>
+            </a>
+
+        </nav>
+
+
+        <div class="sidebar-section-label">
+            Operations
+        </div>
+
+
+        <nav class="sidebar-nav">
+
+            <a
+                class="{% if request.endpoint == 'approvals' %}
+                    active
+                {% endif %}"
+                href="{{ url_for('approvals') }}"
+                title="Approvals"
+            >
+                <span class="nav-icon">✓</span>
+
+                <span class="nav-label">
+                    Approvals
+                </span>
+
+                {% if global_pending_approvals %}
+                <span class="nav-count alert">
+                    {{ global_pending_approvals }}
+                </span>
+                {% endif %}
+            </a>
+
+
+            <a
+                class="{% if request.endpoint == 'clients' %}
+                    active
+                {% endif %}"
+                href="{{ url_for('clients') }}"
+                title="Clients"
+            >
+                <span class="nav-icon">▣</span>
+
+                <span class="nav-label">
+                    Clients
+                </span>
+            </a>
+
+        </nav>
+
+
+        <div class="sidebar-footer">
+
+            <div class="workspace-status">
+
+                <span class="status-dot"></span>
+
+                <div>
+                    <strong>
+                        Local Workspace
+                    </strong>
+
+                    <span>
+                        Development environment
+                    </span>
+                </div>
+
+            </div>
+
+            <div class="version">
+                Business OS · v3
+            </div>
+
+        </div>
+
+    </aside>
+
+
+    <main class="main">
+
+        <header class="topbar">
+
+            <div class="topbar-title">
+
+                <small>
+                    BUSINESS OS
+                </small>
+
+                <h1>
+                    {% block heading %}
+                        Command Center
+                    {% endblock %}
+                </h1>
+
+            </div>
+
+
+            <div class="topbar-actions">
+                {% block actions %}
+                {% endblock %}
+            </div>
+
+        </header>
+
+
+        {% with
+            msgs=get_flashed_messages(
+                with_categories=true
+            )
+        %}
+
+            {% if msgs %}
+
+            <div class="flashes">
+
+                {% for cat, msg in msgs %}
+
+                <div class="flash {{ cat }}">
+                    {{ msg }}
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+            {% endif %}
+
+        {% endwith %}
+
+
+        <section class="page-content">
+            {% block content %}
+            {% endblock %}
+        </section>
+
+    </main>
+
+</div>
+
+
+<script
+    src="{{ url_for(
+        'static',
+        filename='app.js'
+    ) }}"
+></script>
+
+</body>
+</html>

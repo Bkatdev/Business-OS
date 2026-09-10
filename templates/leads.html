@@ -1,52 +1,411 @@
 {% extends "base.html" %}
 
+{% block title %}
+Business OS · Leads
+{% endblock %}
+
+{% block heading %}
+Leads
+{% endblock %}
+
+
+{% block actions %}
+
+<a
+    class="btn secondary"
+    href="{{ url_for('calls') }}"
+>
+    View Calls
+</a>
+
+{% endblock %}
+
+
 {% block content %}
 
-<div class="page-header">
+<div class="operations-hero">
+
     <div>
-        <h1>Leads</h1>
-        <p>Inbound opportunities captured by Business OS.</p>
+
+        <span class="section-kicker">
+            FRONT OFFICE
+        </span>
+
+        <h2>
+            Lead Command Center
+        </h2>
+
+        <p>
+            Review every inbound opportunity,
+            find the leads that need attention,
+            and move work through the pipeline.
+        </p>
+
     </div>
+
+
+    <div class="operations-count">
+
+        <span>
+            Total leads
+        </span>
+
+        <strong>
+            {{ leads|length }}
+        </strong>
+
+    </div>
+
 </div>
 
-<div class="card">
-    {% if leads %}
-        <table>
+
+<div class="operations-toolbar">
+
+    <div class="search-box">
+
+        <span class="search-icon">
+            ⌕
+        </span>
+
+        <input
+            type="search"
+            placeholder="Search name, phone, service, address..."
+            autocomplete="off"
+            data-lead-search
+        >
+
+    </div>
+
+
+    <select data-lead-status>
+
+        <option value="">
+            All statuses
+        </option>
+
+        <option value="new">
+            New
+        </option>
+
+        <option value="contacted">
+            Contacted
+        </option>
+
+        <option value="estimate scheduled">
+            Estimate Scheduled
+        </option>
+
+        <option value="won">
+            Won
+        </option>
+
+        <option value="lost">
+            Lost
+        </option>
+
+    </select>
+
+
+    <select data-lead-priority>
+
+        <option value="">
+            All priorities
+        </option>
+
+        <option value="urgent">
+            Urgent
+        </option>
+
+        <option value="normal">
+            Normal
+        </option>
+
+    </select>
+
+
+    <button
+        type="button"
+        class="filter-reset"
+        data-lead-reset
+    >
+        Clear
+    </button>
+
+</div>
+
+
+<div class="results-summary">
+
+    <span>
+        Showing
+        <strong data-lead-count>
+            {{ leads|length }}
+        </strong>
+        lead<span data-lead-plural>
+            {% if leads|length != 1 %}s{% endif %}
+        </span>
+    </span>
+
+</div>
+
+
+<div class="operations-panel">
+
+{% if leads %}
+
+    <div class="operations-table-wrap">
+
+        <table class="operations-table">
+
             <thead>
+
                 <tr>
-                    <th>Name</th>
-                    <th>Phone</th>
+                    <th>Customer</th>
                     <th>Service</th>
                     <th>Priority</th>
-                    <th>Type</th>
                     <th>Status</th>
+                    <th>Appointment</th>
                     <th>Source</th>
                     <th>Created</th>
+                    <th></th>
                 </tr>
+
             </thead>
 
+
             <tbody>
-                {% for lead in leads %}
-                    <tr>
-                        <td>
-    <a href="{{ url_for('lead_detail', lead_id=lead['id']) }}">
-        {{ lead["caller_name"] or "Unknown" }}
-    </a>
-</td>
-                        <td>{{ lead["phone"] or "—" }}</td>
-                        <td>{{ lead["service_type"] or "—" }}</td>
-                        <td>{{ lead["priority"] or "Normal" }}</td>
-                        <td>{{ lead["lead_type"] or "New Lead" }}</td>
-                        <td>{{ lead["status"] or "New" }}</td>
-                        <td>{{ lead["source"] or "—" }}</td>
-                        <td>{{ lead["created_at"] }}</td>
-                    </tr>
-                {% endfor %}
+
+            {% for lead in leads %}
+
+                <tr
+                    class="clickable-row
+                    {% if lead['priority'] == 'Urgent' %}
+                        urgent-row
+                    {% endif %}"
+                    data-lead-row
+                    data-href="{{ url_for(
+                        'lead_detail',
+                        lead_id=lead['id']
+                    ) }}"
+                    data-status="{{
+                        (lead['status'] or 'New')
+                        | lower
+                    }}"
+                    data-priority="{{
+                        (lead['priority'] or 'Normal')
+                        | lower
+                    }}"
+                    data-search="{{
+                        lead['caller_name'] or ''
+                    }} {{
+                        lead['phone'] or ''
+                    }} {{
+                        lead['service_type'] or ''
+                    }} {{
+                        lead['address'] or ''
+                    }} {{
+                        lead['source'] or ''
+                    }}"
+                >
+
+                    <td>
+
+                        <div class="customer-cell">
+
+                            <div class="customer-avatar">
+
+                                {{
+                                    (
+                                        lead["caller_name"]
+                                        or "?"
+                                    )[0]
+                                    | upper
+                                }}
+
+                            </div>
+
+
+                            <div>
+
+                                <a
+                                    class="customer-name"
+                                    href="{{ url_for(
+                                        'lead_detail',
+                                        lead_id=lead['id']
+                                    ) }}"
+                                >
+                                    {{
+                                        lead["caller_name"]
+                                        or "Unknown Caller"
+                                    }}
+                                </a>
+
+                                <span>
+                                    {{
+                                        lead["phone"]
+                                        or "No phone provided"
+                                    }}
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </td>
+
+
+                    <td>
+
+                        <strong class="table-primary">
+                            {{
+                                lead["service_type"]
+                                or "Not specified"
+                            }}
+                        </strong>
+
+                        <span class="table-secondary">
+                            {{
+                                lead["lead_type"]
+                                or "New Lead"
+                            }}
+                        </span>
+
+                    </td>
+
+
+                    <td>
+
+                        {% if lead["priority"] == "Urgent" %}
+
+                        <span class="ops-pill urgent">
+                            <span class="pill-dot"></span>
+                            Urgent
+                        </span>
+
+                        {% else %}
+
+                        <span class="ops-pill normal">
+                            Normal
+                        </span>
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        <span class="ops-pill status-{{
+                            (lead['status'] or 'New')
+                            | lower
+                            | replace(' ', '-')
+                        }}">
+                            {{
+                                lead["status"]
+                                or "New"
+                            }}
+                        </span>
+
+                    </td>
+
+
+                    <td>
+
+                        {% if lead["appointment_status"] == "Scheduled" %}
+
+                        <span class="appointment-state scheduled">
+                            ✓ Scheduled
+                        </span>
+
+                        {% else %}
+
+                        <span class="appointment-state">
+                            Not scheduled
+                        </span>
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        <span class="source-label">
+                            {{
+                                lead["source"]
+                                or "Unknown"
+                            }}
+                        </span>
+
+                    </td>
+
+
+                    <td>
+
+                        <span class="created-value">
+                            {{ lead["created_at"] }}
+                        </span>
+
+                    </td>
+
+
+                    <td class="row-action">
+                        →
+                    </td>
+
+                </tr>
+
+            {% endfor %}
+
             </tbody>
+
         </table>
-    {% else %}
-        <p>No leads yet.</p>
-    {% endif %}
+
+    </div>
+
+
+    <div
+        class="filtered-empty"
+        data-lead-empty
+        hidden
+    >
+
+        <div class="empty-icon">
+            ⌕
+        </div>
+
+        <h3>
+            No matching leads
+        </h3>
+
+        <p>
+            Change or clear your filters.
+        </p>
+
+    </div>
+
+
+{% else %}
+
+    <div class="operations-empty">
+
+        <div class="empty-icon">
+            ◎
+        </div>
+
+        <h3>
+            No leads yet
+        </h3>
+
+        <p>
+            Leads captured by the AI receptionist
+            will automatically appear here.
+        </p>
+
+    </div>
+
+{% endif %}
+
 </div>
 
 {% endblock %}
