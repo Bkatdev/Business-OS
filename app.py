@@ -29,6 +29,33 @@ from services.security import verify_retell_signature
 from services.version import VERSION, RELEASE_NAME, BUILD_ID
 from services.product_foundation import ensure_product_schema, readiness_for_business, save_profile, activate_business, client_product_view, attention_queue
 from services.business_config import ensure_business_config_schema, configuration_view, add_service, toggle_service, add_intake_question, toggle_intake_question
+from services.website_studio import website_studio_view
+from services.website_versions import (
+    WebsiteVersionConflict,
+    WebsiteVersionNotFound,
+    get_current_version,
+    get_preview_version,
+    list_versions,
+    select_preview_version,
+    synchronize_readiness,
+    update_presentation,
+)
+from services.website_renderer import (
+    WebsiteRenderNotFound,
+    build_current_draft_render_model,
+    build_preview_render_model,
+)
+from services.v13_creative_director import generate_concept_blueprint
+from services.v13_site_model import build_site_model
+from services.v13_concepts import (
+    ConceptNotFound,
+    create_concept,
+    ensure_v13_schema,
+    get_concept_for_business,
+    list_concepts,
+    next_concept_number,
+)
+from services.v13_sales import build_sales_brief
 from services.front_office_intelligence import (
     ensure_front_office_schema, lead_intelligence, link_lead_service,
     save_intake_answer, unified_timeline, build_front_office_queue,
@@ -711,6 +738,90 @@ def update_notes(bid):
             "business_detail",
             bid=bid,
         )
+    )
+
+
+@app.route("/business/<int:bid>/concept")
+def prospect_concept_workspace(bid):
+    conn = connect()
+    ensure_v13_schema(conn)
+    business = conn.execute("SELECT * FROM businesses WHERE id=?", (bid,)).fetchone()
+    if business is None:
+        conn.close()
+        return render_template("404.html"), 404
+    sales = build_sales_brief(business)
+    concepts = list_concepts(conn, bid)
+    conn.close()
+    return render_template(
+        "prospect_concept.html",
+        business=dict(business),
+        sales=sales,
+        concepts=concepts,
+    )
+
+
+@app.route("/business/<int:bid>/concept/generate", methods=["POST"])
+def generate_prospect_concept(bid):
+    conn = connect()
+    ensure_v13_schema(conn)
+    business = conn.execute("SELECT * FROM businesses WHERE id=?", (bid,)).fetchone()
+    if business is None:
+        conn.close()
+        return render_template("404.html"), 404
+
+    creative_brief = request.form.get("creative_brief", "").strip()
+    concept_number = next_concept_number(conn, bid)
+    try:
+        director = generate_concept_blueprint(dict(business), creative_brief, concept_number)
+        concept = create_concept(
+            conn,
+            bid,
+            creative_brief,
+            director.blueprint,
+            director.generation_mode,
+        )
+        flash(
+            f"Private concept {concept['concept_number']} generated. Nothing was published.",
+            "success",
+        )
+    except Exception as exc:
+        flash(f"Concept generation failed safely: {exc}", "error")
+    finally:
+        conn.close()
+
+    return redirect(url_for("prospect_concept_workspace", bid=bid))
+
+
+@app.route("/business/<int:bid>/concept/<int:concept_id>/preview")
+def prospect_concept_preview(bid, concept_id):
+    conn = connect()
+    ensure_v13_schema(conn)
+    business = conn.execute("SELECT * FROM businesses WHERE id=?", (bid,)).fetchone()
+    if business is None:
+        conn.close()
+        return render_template("404.html"), 404
+    try:
+        concept = get_concept_for_business(conn, bid, concept_id)
+    except ConceptNotFound:
+        conn.close()
+        return render_template("404.html"), 404
+    conn.close()
+
+    site = build_site_model(dict(business), concept["blueprint"])
+    response = render_template(
+        "prospect_concept_preview.html",
+        business=dict(business),
+        concept=concept,
+        bp=concept["blueprint"],
+        site=site,
+    )
+    return Response(
+        response,
+        headers={
+            "X-Robots-Tag": "noindex, nofollow, noarchive",
+            "Cache-Control": "private, no-store, max-age=0",
+            "Pragma": "no-cache",
+        },
     )
 
 
@@ -1926,6 +2037,339 @@ def business_configuration(bid):
     return render_template("business_configuration.html", business=business, config=config, readiness=readiness)
 
 
+@app.route("/client/<int:bid>/website")
+def website_studio(bid):
+    conn = connect()
+
+    business = conn.execute(
+        "SELECT * FROM businesses WHERE id=?",
+        (bid,),
+    ).fetchone()
+
+    if business is None:
+        conn.close()
+        return render_template("404.html"), 404
+
+    try:
+        studio = website_studio_view(
+            conn,
+            bid,
+        )
+
+        draft = get_current_version(
+            conn,
+            bid,
+        )
+
+        preview = get_preview_version(
+            conn,
+            bid,
+        )
+
+        versions = list_versions(
+            conn,
+            bid,
+            limit=20,
+        )
+
+        render_model = (
+            build_current_draft_render_model(
+                conn,
+                bid,
+            )
+        )
+
+    except (
+        WebsiteVersionNotFound,
+        WebsiteRenderNotFound,
+    ) as exc:
+        conn.close()
+        flash(
+            str(exc),
+            "error",
+        )
+        return redirect(
+            url_for(
+                "business_configuration",
+                bid=bid,
+            )
+        )
+
+    conn.close()
+
+    return render_template(
+        "website_studio.html",
+        business=business,
+        studio=studio,
+        draft=draft,
+        preview=preview,
+        versions=versions,
+        site=render_model,
+    )
+
+
+@app.route(
+    "/client/<int:bid>/website/save",
+    methods=["POST"],
+)
+def save_website_studio(bid):
+    conn = connect()
+
+    business = conn.execute(
+        "SELECT id FROM businesses WHERE id=?",
+        (bid,),
+    ).fetchone()
+
+    if business is None:
+        conn.close()
+        return render_template("404.html"), 404
+
+    changes = {
+        "theme_key": (
+            request.form.get(
+                "theme_key",
+                "classic",
+            ).strip()
+        ),
+        "hero_headline": request.form.get(
+            "hero_headline",
+            "",
+        ),
+        "hero_supporting_text": request.form.get(
+            "hero_supporting_text",
+            "",
+        ),
+        "primary_cta_label": request.form.get(
+            "primary_cta_label",
+            "Request Service",
+        ),
+        "about_copy": request.form.get(
+            "about_copy",
+            "",
+        ),
+        "contact_intro": request.form.get(
+            "contact_intro",
+            "",
+        ),
+        "show_services": (
+            request.form.get(
+                "show_services"
+            )
+            == "1"
+        ),
+        "show_about": (
+            request.form.get(
+                "show_about"
+            )
+            == "1"
+        ),
+        "show_contact": (
+            request.form.get(
+                "show_contact"
+            )
+            == "1"
+        ),
+        "seo_title": request.form.get(
+            "seo_title",
+            "",
+        ),
+        "seo_description": request.form.get(
+            "seo_description",
+            "",
+        ),
+    }
+
+    expected_version = request.form.get(
+        "expected_current_version_id",
+        "",
+    ).strip()
+
+    try:
+        result = update_presentation(
+            conn,
+            bid,
+            changes,
+            expected_current_version_id=(
+                expected_version
+                if expected_version
+                else None
+            ),
+        )
+
+        synchronize_readiness(
+            conn,
+            bid,
+        )
+
+    except WebsiteVersionConflict as exc:
+        conn.close()
+        flash(
+            str(exc),
+            "error",
+        )
+        return redirect(
+            url_for(
+                "website_studio",
+                bid=bid,
+            )
+        )
+
+    except (
+        WebsiteVersionNotFound,
+        ValueError,
+    ) as exc:
+        conn.close()
+        flash(
+            str(exc),
+            "error",
+        )
+        return redirect(
+            url_for(
+                "website_studio",
+                bid=bid,
+            )
+        )
+
+    conn.close()
+
+    if result.get(
+        "created_new_version"
+    ):
+        flash(
+            "Website draft saved as a new version. "
+            "The reviewed preview was not changed.",
+            "success",
+        )
+
+    else:
+        flash(
+            "No presentation changes were detected.",
+            "success",
+        )
+
+    return redirect(
+        url_for(
+            "website_studio",
+            bid=bid,
+        )
+    )
+
+
+@app.route(
+    "/client/<int:bid>/website/preview/select",
+    methods=["POST"],
+)
+def select_website_preview(bid):
+    raw_version = request.form.get(
+        "version_id",
+        "",
+    ).strip()
+
+    if not raw_version.isdigit():
+        flash(
+            "Choose a valid Website Studio version.",
+            "error",
+        )
+        return redirect(
+            url_for(
+                "website_studio",
+                bid=bid,
+            )
+        )
+
+    conn = connect()
+
+    business = conn.execute(
+        "SELECT id FROM businesses WHERE id=?",
+        (bid,),
+    ).fetchone()
+
+    if business is None:
+        conn.close()
+        return render_template("404.html"), 404
+
+    try:
+        select_preview_version(
+            conn,
+            bid,
+            int(raw_version),
+        )
+
+        synchronize_readiness(
+            conn,
+            bid,
+        )
+
+    except WebsiteVersionNotFound as exc:
+        conn.close()
+        flash(
+            str(exc),
+            "error",
+        )
+        return redirect(
+            url_for(
+                "website_studio",
+                bid=bid,
+            )
+        )
+
+    conn.close()
+
+    flash(
+        "Preview version selected. "
+        "Nothing has been published.",
+        "success",
+    )
+
+    return redirect(
+        url_for(
+            "website_studio",
+            bid=bid,
+        )
+    )
+
+
+@app.route("/client/<int:bid>/website/preview")
+def website_preview(bid):
+    conn = connect()
+
+    business = conn.execute(
+        "SELECT * FROM businesses WHERE id=?",
+        (bid,),
+    ).fetchone()
+
+    if business is None:
+        conn.close()
+        return render_template("404.html"), 404
+
+    try:
+        model = build_preview_render_model(
+            conn,
+            bid,
+        )
+
+    except WebsiteRenderNotFound as exc:
+        conn.close()
+        flash(
+            str(exc),
+            "error",
+        )
+        return redirect(
+            url_for(
+                "website_studio",
+                bid=bid,
+            )
+        )
+
+    conn.close()
+
+    return render_template(
+        "website_preview.html",
+        business=business,
+        site=model,
+    )
+
+
 @app.route("/client/<int:bid>/configuration/services", methods=["POST"])
 def add_business_service(bid):
     ok, message = add_service(
@@ -2606,6 +3050,7 @@ if __name__ == "__main__":
     ensure_front_office_schema(conn)
     ensure_control_plane_schema(conn)
     ensure_execution_schema(conn)
+    ensure_v13_schema(conn)
     conn.close()
     print(f"Business OS {VERSION} · {RELEASE_NAME} · {BUILD_ID}")
     print(f"Project root: {os.path.dirname(os.path.abspath(__file__))}")

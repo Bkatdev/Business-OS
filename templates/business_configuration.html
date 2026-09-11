@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Configuration · {{ business.name }} · Business OS{% endblock %}
 {% block heading %}Business Configuration{% endblock %}
-{% block actions %}<a class="btn secondary" href="{{ url_for('client_operations', bid=business.id) }}">Client command center</a><a class="btn" href="{{ url_for('client_onboarding', bid=business.id) }}">Business profile</a>{% endblock %}
+{% block actions %}<a class="btn secondary" href="{{ url_for('client_operations', bid=business.id) }}">Client command center</a><a class="btn secondary" href="{{ url_for('website_studio', bid=business.id) }}">Website Studio</a><a class="btn" href="{{ url_for('client_onboarding', bid=business.id) }}">Business profile</a>{% endblock %}
 {% block content %}
 <div class="v9-client-hero compact">
   <div>

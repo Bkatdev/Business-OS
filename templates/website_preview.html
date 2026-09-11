@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>{{ site.seo.title or site.business.name }}</title>
+
+    {% if site.seo.description %}
+    <meta
+        name="description"
+        content="{{ site.seo.description }}"
+    >
+    {% endif %}
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='v12.css') }}?v=1"
+    >
+</head>
+
+<body class="v12-preview-body">
+
+<div class="v12-preview-toolbar">
+    <div>
+        <strong>Business OS Website Preview</strong>
+        <span>
+            Version {{ site.version.number }} · Not published
+        </span>
+    </div>
+
+    <a
+        href="{{ url_for('website_studio', bid=business.id) }}"
+    >
+        Back to Website Studio
+    </a>
+</div>
+
+
+<main class="v12-public-site theme-{{ site.presentation.theme_key }}">
+
+    <header class="v12-public-header">
+        <div class="v12-public-container">
+            <a class="v12-public-brand" href="#top">
+                {{ site.business.name }}
+            </a>
+
+            <nav aria-label="Website sections">
+                {% if site.sections.services and site.services %}
+                <a href="#services">Services</a>
+                {% endif %}
+
+                {% if site.sections.about and site.presentation.about_copy %}
+                <a href="#about">About</a>
+                {% endif %}
+
+                {% if site.sections.contact %}
+                <a href="#contact">Contact</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+
+    <section id="top" class="v12-public-hero">
+        <div class="v12-public-container v12-public-hero-grid">
+
+            <div>
+                {% if site.profile.industry %}
+                <span class="v12-public-eyebrow">
+                    {{ site.profile.industry }}
+                </span>
+                {% endif %}
+
+                <h1>{{ site.hero.headline }}</h1>
+
+                {% if site.hero.supporting_text %}
+                <p>{{ site.hero.supporting_text }}</p>
+                {% endif %}
+
+                {% if site.sections.contact %}
+                <a
+                    class="v12-public-button"
+                    href="#contact"
+                >
+                    {{ site.hero.primary_cta_label }}
+                </a>
+                {% endif %}
+            </div>
+
+            <div class="v12-public-trust-card">
+                <span>Serving</span>
+                <strong>
+                    {{ site.profile.service_area or site.business.city or 'Local customers' }}
+                </strong>
+
+                {% if site.profile.business_hours %}
+                <small>{{ site.profile.business_hours }}</small>
+                {% endif %}
+            </div>
+
+        </div>
+    </section>
+
+
+    {% if site.sections.services %}
+    <section id="services" class="v12-public-section">
+        <div class="v12-public-container">
+
+            <div class="v12-public-section-heading">
+                <span>Services</span>
+                <h2>How we can help</h2>
+            </div>
+
+            {% if site.services %}
+            <div class="v12-public-service-grid">
+                {% for service in site.services %}
+                <article class="v12-public-service-card">
+                    <h3>{{ service.name }}</h3>
+
+                    {% if service.description %}
+                    <p>{{ service.description }}</p>
+                    {% endif %}
+
+                    <small>
+                        {% if service.requires_estimate %}
+                        Estimate required
+                        {% elif service.bookable %}
+                        Available to book
+                        {% else %}
+                        Request service
+                        {% endif %}
+                    </small>
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="v12-public-muted">
+                Service information is being configured.
+            </p>
+            {% endif %}
+
+        </div>
+    </section>
+    {% endif %}
+
+
+    {% if site.sections.about and site.presentation.about_copy %}
+    <section id="about" class="v12-public-section v12-public-section-alt">
+        <div class="v12-public-container v12-public-copy-section">
+            <span>About</span>
+            <h2>{{ site.business.name }}</h2>
+            <p>{{ site.presentation.about_copy }}</p>
+        </div>
+    </section>
+    {% endif %}
+
+
+    {% if site.sections.contact %}
+    <section id="contact" class="v12-public-section">
+        <div class="v12-public-container">
+
+            <div class="v12-public-section-heading">
+                <span>Contact</span>
+                <h2>{{ site.hero.primary_cta_label }}</h2>
+
+                {% if site.presentation.contact_intro %}
+                <p>{{ site.presentation.contact_intro }}</p>
+                {% endif %}
+            </div>
+
+            <div class="v12-public-contact-grid">
+
+                <div class="v12-public-contact-card">
+                    {% if site.contact.phone %}
+                    <div>
+                        <span>Phone</span>
+                        <strong>{{ site.contact.phone }}</strong>
+                    </div>
+                    {% endif %}
+
+                    {% if site.contact.email %}
+                    <div>
+                        <span>Email</span>
+                        <strong>{{ site.contact.email }}</strong>
+                    </div>
+                    {% endif %}
+
+                    {% if site.contact.service_area %}
+                    <div>
+                        <span>Service area</span>
+                        <strong>{{ site.contact.service_area }}</strong>
+                    </div>
+                    {% endif %}
+
+                    {% if site.contact.business_hours %}
+                    <div>
+                        <span>Hours</span>
+                        <strong>{{ site.contact.business_hours }}</strong>
+                    </div>
+                    {% endif %}
+                </div>
+
+
+                <div class="v12-public-request-card">
+                    <span class="v12-public-eyebrow">
+                        Request preview
+                    </span>
+
+                    <h3>Tell us what you need</h3>
+
+                    <p>
+                        This preview shows the verified intake structure.
+                        Submission is intentionally disabled until the governed
+                        public intake endpoint is installed and tested.
+                    </p>
+
+                    {% if site.intake.questions %}
+                    <div class="v12-public-question-preview">
+                        {% for question in site.intake.questions %}
+                        <label>
+                            <span>
+                                {{ question.label }}
+                                {% if question.required %} *{% endif %}
+                            </span>
+
+                            {% if question.question_type in ['select', 'radio'] and question.options %}
+                            <select disabled>
+                                <option>Select an option</option>
+                                {% for option in question.options %}
+                                <option>{{ option }}</option>
+                                {% endfor %}
+                            </select>
+
+                            {% elif question.question_type == 'textarea' %}
+                            <textarea
+                                rows="3"
+                                disabled
+                                placeholder="Preview only"
+                            ></textarea>
+
+                            {% else %}
+                            <input
+                                disabled
+                                placeholder="Preview only"
+                            >
+                            {% endif %}
+                        </label>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <button
+                        class="v12-public-button"
+                        type="button"
+                        disabled
+                    >
+                        Preview only · Submission locked
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+
+    <footer class="v12-public-footer">
+        <div class="v12-public-container">
+            <strong>{{ site.business.name }}</strong>
+            <span>
+                Website preview generated from verified Business OS configuration.
+            </span>
+        </div>
+    </footer>
+
+</main>
+
+</body>
+</html>

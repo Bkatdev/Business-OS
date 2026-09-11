@@ -10,3 +10,6 @@ venv/
 Thumbs.db
 upgrade_backups/
 local_backups/
+.v13_backups/
+*.db-shm
+*.db-wal

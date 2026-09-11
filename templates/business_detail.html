@@ -18,6 +18,13 @@ Prospect Intelligence
   ← Prospects
 </a>
 
+<a
+  class="btn secondary"
+  href="{{ url_for('prospect_concept_workspace', bid=business.id) }}"
+>
+  Website Concepts
+</a>
+
 <form
   method="post"
   action="{{ url_for('audit_one', bid=business.id) }}"

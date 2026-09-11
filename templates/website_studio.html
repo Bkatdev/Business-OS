@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+
+{% block title %}Website Studio · {{ business.name }} · Business OS{% endblock %}
+{% block heading %}Website Studio{% endblock %}
+
+{% block actions %}
+<a class="btn secondary" href="{{ url_for('business_configuration', bid=business.id) }}">Business Configuration</a>
+{% if preview %}
+<a class="btn" href="{{ url_for('website_preview', bid=business.id) }}" target="_blank" rel="noopener">Open Preview</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+<div class="v12-studio-shell">
+
+<div class="v12-studio-intro">
+    <div>
+        <span class="section-kicker">CUSTOMER FRONT DOOR</span>
+        <h2>{{ business.name }}</h2>
+        <p>
+            Build a professional customer-facing website from the business information
+            you already manage in Business OS. Update presentation here while services,
+            contact details, service area, and customer intake stay connected automatically.
+        </p>
+
+        <div class="v12-chip-row">
+            <span class="v12-chip">
+                Draft v{{ draft.version_number }}
+            </span>
+
+            <span class="v12-chip">
+                {{ site.services|length }} public services
+            </span>
+
+            <span class="v12-chip">
+                {{ site.intake.questions|length }} intake questions
+            </span>
+
+            {% if preview %}
+            <span class="v12-chip positive">
+                Preview v{{ preview.version_number }}
+            </span>
+            {% else %}
+            <span class="v12-chip muted">
+                No reviewed preview
+            </span>
+            {% endif %}
+
+            <span class="v12-chip locked">
+                Live publishing locked
+            </span>
+        </div>
+    </div>
+
+    <div class="v12-readiness-card">
+        <span>WEBSITE COMPLETENESS</span>
+        <strong>{{ studio.readiness.score }}%</strong>
+        <small>
+            {{ studio.readiness.checks|selectattr('ok')|list|length }}
+            of
+            {{ studio.readiness.checks|length }}
+            details complete
+        </small>
+
+        {% if studio.readiness.blockers %}
+        <em class="v12-readiness-state needs-attention">
+            {{ studio.readiness.blockers|length }}
+            required
+            {% if studio.readiness.blockers|length == 1 %}item{% else %}items{% endif %}
+            still needed
+        </em>
+        {% else %}
+        <em class="v12-readiness-state ready">
+            Required website details complete
+        </em>
+        {% endif %}
+    </div>
+</div>
+
+
+{% if site.warnings %}
+<div class="panel v12-warning-panel">
+    <div class="v9-section-head">
+        <div>
+            <span class="section-kicker">READINESS</span>
+            <h3>What still needs attention</h3>
+            <p>
+                Business OS will show missing information rather than invent it.
+            </p>
+        </div>
+        <span class="count-bubble">{{ site.warnings|length }}</span>
+    </div>
+
+    <div class="v12-warning-list">
+        {% for warning in site.warnings %}
+        <div class="v12-warning {{ warning.severity }}">
+            <strong>{{ warning.message }}</strong>
+            <span>{{ warning.severity|upper }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+
+<div class="v12-studio-layout">
+
+    <div class="v12-editor-column">
+
+        <form
+            method="POST"
+            action="{{ url_for('save_website_studio', bid=business.id) }}"
+            class="panel v12-editor"
+        >
+            <input
+                type="hidden"
+                name="expected_current_version_id"
+                value="{{ draft.id }}"
+            >
+
+            <div class="v9-section-head">
+                <div>
+                    <span class="section-kicker">PRESENTATION</span>
+                    <h3>Website appearance and copy</h3>
+                    <p>
+                        Shape how the website looks and speaks. Business facts continue
+                        to come from your shared Business Configuration.
+                    </p>
+                </div>
+            </div>
+
+            <div class="v12-form-section">
+                <label class="v12-field">
+                    <span>Theme</span>
+                    <select name="theme_key">
+                        <option value="classic" {% if draft.presentation.theme_key == 'classic' %}selected{% endif %}>Classic</option>
+                        <option value="modern" {% if draft.presentation.theme_key == 'modern' %}selected{% endif %}>Modern</option>
+                        <option value="bold" {% if draft.presentation.theme_key == 'bold' %}selected{% endif %}>Bold</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="v12-form-section">
+                <span class="v12-form-kicker">HERO</span>
+
+                <label class="v12-field">
+                    <span>Headline</span>
+                    <input
+                        name="hero_headline"
+                        maxlength="160"
+                        value="{{ draft.presentation.hero_headline }}"
+                        placeholder="{{ business.name }}"
+                    >
+                </label>
+
+                <label class="v12-field">
+                    <span>Supporting text</span>
+                    <textarea
+                        name="hero_supporting_text"
+                        maxlength="500"
+                        rows="3"
+                        placeholder="Short, factual explanation of how you help customers."
+                    >{{ draft.presentation.hero_supporting_text }}</textarea>
+                </label>
+
+                <label class="v12-field">
+                    <span>Primary button</span>
+                    <input
+                        name="primary_cta_label"
+                        maxlength="80"
+                        value="{{ draft.presentation.primary_cta_label }}"
+                    >
+                </label>
+            </div>
+
+            <div class="v12-form-section">
+                <span class="v12-form-kicker">ABOUT</span>
+
+                <label class="v12-field">
+                    <span>About copy</span>
+                    <textarea
+                        name="about_copy"
+                        maxlength="2000"
+                        rows="6"
+                        placeholder="Verified, owner-approved information about the business."
+                    >{{ draft.presentation.about_copy }}</textarea>
+                </label>
+            </div>
+
+            <div class="v12-form-section">
+                <span class="v12-form-kicker">CONTACT</span>
+
+                <label class="v12-field">
+                    <span>Contact introduction</span>
+                    <textarea
+                        name="contact_intro"
+                        maxlength="500"
+                        rows="3"
+                        placeholder="Optional introduction above the contact/request section."
+                    >{{ draft.presentation.contact_intro }}</textarea>
+                </label>
+            </div>
+
+            <div class="v12-form-section">
+                <span class="v12-form-kicker">VISIBLE SECTIONS</span>
+
+                <div class="v12-toggle-grid">
+                    <label>
+                        <input
+                            type="checkbox"
+                            name="show_services"
+                            value="1"
+                            {% if draft.presentation.show_services %}checked{% endif %}
+                        >
+                        <span>
+                            <strong>Services</strong>
+                            <small>Use active public services from Business Configuration.</small>
+                        </span>
+                    </label>
+
+                    <label>
+                        <input
+                            type="checkbox"
+                            name="show_about"
+                            value="1"
+                            {% if draft.presentation.show_about %}checked{% endif %}
+                        >
+                        <span>
+                            <strong>About</strong>
+                            <small>Show the owner-approved about section.</small>
+                        </span>
+                    </label>
+
+                    <label>
+                        <input
+                            type="checkbox"
+                            name="show_contact"
+                            value="1"
+                            {% if draft.presentation.show_contact %}checked{% endif %}
+                        >
+                        <span>
+                            <strong>Contact & request</strong>
+                            <small>Show verified contact information and intake preview.</small>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="v12-form-section">
+                <span class="v12-form-kicker">SEARCH PREVIEW</span>
+
+                <label class="v12-field">
+                    <span>SEO title</span>
+                    <input
+                        name="seo_title"
+                        maxlength="160"
+                        value="{{ draft.presentation.seo_title }}"
+                        placeholder="{{ business.name }}"
+                    >
+                </label>
+
+                <label class="v12-field">
+                    <span>SEO description</span>
+                    <textarea
+                        name="seo_description"
+                        maxlength="320"
+                        rows="3"
+                        placeholder="Concise factual description for search results."
+                    >{{ draft.presentation.seo_description }}</textarea>
+                </label>
+            </div>
+
+            <div class="v12-save-bar">
+                <div>
+                    <strong>Draft version {{ draft.version_number }}</strong>
+                    <span>
+                        Saving creates a new draft when something changed, while earlier versions stay available.
+                    </span>
+                </div>
+
+                <button class="btn" type="submit">
+                    Save Website Draft
+                </button>
+            </div>
+
+        </form>
+
+
+        <section class="panel v12-history">
+            <div class="v9-section-head">
+                <div>
+                    <span class="section-kicker">VERSION HISTORY</span>
+                    <h3>Website drafts</h3>
+                    <p>
+                        Choose exactly which version customers would preview. New edits
+                        never replace the version you already reviewed.
+                    </p>
+                </div>
+
+                <span class="count-bubble">{{ versions|length }}</span>
+            </div>
+
+            <div class="v12-version-list">
+                {% for version in versions %}
+                <div class="v12-version-row">
+                    <div>
+                        <strong>Version {{ version.version_number }}</strong>
+                        <span>
+                            {{ version.status|replace('_', ' ')|title }}
+                            · {{ version.updated_at }}
+                        </span>
+                    </div>
+
+                    <div class="v12-version-actions">
+                        {% if preview and preview.id == version.id %}
+                        <span class="v12-chip positive">Preview</span>
+                        {% else %}
+                        <form
+                            method="POST"
+                            action="{{ url_for('select_website_preview', bid=business.id) }}"
+                        >
+                            <input
+                                type="hidden"
+                                name="version_id"
+                                value="{{ version.id }}"
+                            >
+                            <button
+                                class="btn secondary"
+                                type="submit"
+                            >
+                                Use for Preview
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+    </div>
+
+</div>
+
+</div>
+
+{% endblock %}

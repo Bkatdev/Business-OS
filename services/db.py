@@ -627,6 +627,18 @@ def init_db():
     from services.execution_schema import ensure_execution_schema
     ensure_execution_schema(con)
 
+    # ---- v12: Website Studio ------------------------------------------
+    # Website Studio owns presentation/draft state while continuing to
+    # reference canonical Business OS configuration and tenant identity.
+    from services.website_studio import ensure_website_studio_schema
+    ensure_website_studio_schema(con)
+
+    # ---- v13: Prospect-to-Demo foundation -----------------------------
+    # Immutable private website concepts are separate from production
+    # publishing and remain bound to canonical business ownership.
+    from services.v13_concepts import ensure_v13_schema
+    ensure_v13_schema(con)
+
     con.commit()
     con.close()
 

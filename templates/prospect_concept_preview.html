@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>{{ site.name }} · Private Website Concept</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='v13.css') }}?v=3">
+</head>
+<body class="v13-site family-{{ bp.layout_family }} palette-{{ bp.palette }} type-{{ bp.type_system }} spacing-{{ bp.spacing }} radius-{{ bp.radius }} surface-{{ bp.surface }} personality-{{ bp.personality }} motif-{{ bp.visual_motif }} density-{{ bp.density }}">
+  <aside class="v13-demo-ribbon" aria-label="Private concept status">
+    <strong>PRIVATE CONCEPT</strong>
+    <span>Preview only · not published</span>
+  </aside>
+
+  <header class="v13-site-nav nav-{{ bp.nav_style }}">
+    <a class="v13-site-brand" href="#top">{{ site.name }}</a>
+    <nav aria-label="Concept navigation">
+      <a href="#about">About</a>
+      {% if site.has_reputation %}<a href="#reputation">Reputation</a>{% endif %}
+      <a class="v13-nav-cta cta-{{ bp.cta_style }}" href="#contact">Contact</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="v13-public-hero hero-{{ bp.hero_layout }}">
+      <div class="v13-hero-copy">
+        <span class="v13-eyebrow">{{ site.eyebrow }}</span>
+        <h1>{{ site.headline }}</h1>
+        <p class="v13-supporting">{{ site.supporting }}</p>
+        <p class="v13-hero-body">{{ site.hero_body }}</p>
+        <div class="v13-hero-actions">
+          {% if site.phone_href %}
+          <a class="v13-primary cta-{{ bp.cta_style }}" href="{{ site.phone_href }}">{{ site.contact_label }}</a>
+          {% else %}
+          <a class="v13-primary cta-{{ bp.cta_style }}" href="#contact">Contact</a>
+          {% endif %}
+          <a class="v13-secondary" href="#about">See details</a>
+        </div>
+      </div>
+
+      {% if bp.hero_layout not in ['quiet_center', 'full_statement'] %}
+      <aside class="v13-hero-proof" aria-label="Public business details">
+        <span class="v13-proof-kicker">PUBLIC DETAILS</span>
+        <div class="v13-proof-list">
+          {% for item in site.hero_facts %}
+          <div><span>{{ item.label }}</span><strong>{{ item.value }}</strong></div>
+          {% endfor %}
+        </div>
+      </aside>
+      {% endif %}
+
+      {% if bp.hero_layout == 'full_statement' %}
+      <div class="v13-hero-factline">
+        {% for item in site.hero_facts[:3] %}
+        <span><b>{{ item.label }}</b>{{ item.value }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+
+    {% for section in site.sections %}
+      {% if section == 'credibility' %}
+      <section id="about" class="v13-public-section credibility-{{ bp.section_variants.credibility }}">
+        <div class="v13-section-heading">
+          <span>AT A GLANCE</span>
+          <h2>The essentials, without the clutter.</h2>
+        </div>
+        <div class="v13-fact-grid">
+          <article><span>Business</span><strong>{{ site.name }}</strong></article>
+          <article><span>Category</span><strong>{{ site.category }}</strong></article>
+          {% if site.city %}<article><span>Location</span><strong>{{ site.city }}</strong></article>{% endif %}
+          {% if site.phone %}<article><span>Contact</span><strong>{{ site.phone }}</strong></article>{% endif %}
+        </div>
+      </section>
+
+      {% elif section == 'category_focus' %}
+      <section class="v13-public-section category-{{ bp.section_variants.category_focus }}">
+        <div class="v13-category-copy">
+          <span class="v13-eyebrow">WHAT THEY DO</span>
+          <h2>{{ site.category }}</h2>
+          <p>{{ site.category_copy }}</p>
+        </div>
+        <div class="v13-category-mark" aria-hidden="true">
+          <span>{{ site.category }}</span>
+          {% if site.city %}<small>{{ site.city }}</small>{% endif %}
+        </div>
+      </section>
+
+      {% elif section == 'local_presence' %}
+      <section class="v13-public-section local-{{ bp.section_variants.local_presence }}">
+        <div>
+          <span class="v13-eyebrow">LOCATION</span>
+          <h2>{{ site.location_heading }}</h2>
+          <p>{{ site.location_copy }}</p>
+        </div>
+        <div class="v13-local-mark" aria-hidden="true"><span>{{ site.city }}</span></div>
+      </section>
+
+      {% elif section == 'reputation' %}
+      <section id="reputation" class="v13-public-section reputation-{{ bp.section_variants.reputation }}">
+        <div class="v13-reputation-copy">
+          <span class="v13-eyebrow">PUBLIC REPUTATION</span>
+          <h2>{{ site.reputation_heading }}</h2>
+          <p>{{ site.reputation_detail }}</p>
+        </div>
+        <div class="v13-review-pill" aria-hidden="true">
+          <strong>{{ site.rating }} ★</strong>
+          <span>{{ site.reviews }} reviews</span>
+        </div>
+      </section>
+
+      {% elif section == 'contact' %}
+      <section id="contact" class="v13-public-section contact-{{ bp.section_variants.contact }}">
+        <div class="v13-contact-copy">
+          <span class="v13-eyebrow">NEXT STEP</span>
+          <h2>{{ site.contact_heading }}</h2>
+          <p>{{ site.contact_copy }}</p>
+        </div>
+        <div class="v13-contact-card">
+          <strong>{{ site.name }}</strong>
+          {% if site.phone %}<a href="{{ site.phone_href }}">{{ site.phone }}</a>{% endif %}
+          {% if site.city %}<span>{{ site.city }}</span>{% endif %}
+          {% if site.phone_href %}<a class="v13-contact-button" href="{{ site.phone_href }}">Call now</a>{% endif %}
+        </div>
+      </section>
+      {% endif %}
+    {% endfor %}
+  </main>
+
+  <footer class="v13-site-footer">
+    <strong>{{ site.name }}</strong>
+    <span>Private preview · not published</span>
+  </footer>
+</body>
+</html>
