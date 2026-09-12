@@ -1,0 +1,149 @@
+<header class="site-nav">
+  <a class="site-brand" href="#top" aria-label="{{ site.business.name }} home">
+    <span class="brand-emblem" aria-hidden="true">{{ site.business.name[:1]|upper }}</span>
+    <span class="brand-text"><strong>{{ site.business.name }}</strong>{% if site.profile.industry %}<small>{{ site.profile.industry }}</small>{% endif %}</span>
+  </a>
+  <nav aria-label="Website sections">
+    <a href="#services">Services</a>
+    <a href="#process">How it works</a>
+    {% if site.presentation.about_copy %}<a href="#about">About</a>{% endif %}
+    <a href="#contact">Contact</a>
+  </nav>
+  <a class="button button-primary nav-cta" href="#contact">Request an estimate</a>
+</header>
+
+<main id="top">
+  <section class="hero-shell">
+    <div class="hero-copy">
+      <div class="eyebrow-row">
+        {% if site.profile.industry %}<span class="eyebrow">{{ site.profile.industry }}</span>{% endif %}
+        {% if site.service_areas %}<span class="hero-location">Serving {{ site.service_areas[:2]|join(' & ') }}</span>{% endif %}
+      </div>
+      <h1>{{ site.hero.headline }}</h1>
+      {% if site.hero.supporting_text %}<p class="hero-support">{{ site.hero.supporting_text }}</p>{% endif %}
+      <div class="hero-actions">
+        <a class="button button-primary" href="#contact">Request an estimate</a>
+        {% if site.business.phone %}<a class="button button-ghost" href="tel:{{ site.business.phone }}">Call {{ site.business.phone }}</a>{% else %}<a class="text-link" href="#services">Explore services →</a>{% endif %}
+      </div>
+      <div class="hero-facts" aria-label="Business highlights">
+        <div><strong>{{ site.services|length }}</strong><span>Verified services</span></div>
+        <div><strong>{{ site.service_areas|length if site.service_areas else 'Local' }}</strong><span>{{ 'Service areas' if site.service_areas else 'Service area' }}</span></div>
+        <div><strong>Simple</strong><span>Estimate request</span></div>
+      </div>
+    </div>
+
+    <div class="hero-art" aria-hidden="true">
+      <div class="art-sun"></div>
+      <svg class="tree-scene" viewBox="0 0 720 620" role="presentation">
+        <path class="hill hill-back" d="M0 420 C145 350 244 374 360 420 C474 466 575 451 720 370 V620 H0 Z"/>
+        <path class="hill hill-front" d="M0 486 C151 412 272 425 394 478 C507 527 609 500 720 454 V620 H0 Z"/>
+        <path class="trunk" d="M390 474 C377 397 383 323 410 253 L438 260 C419 335 421 404 441 486 Z"/>
+        <path class="branch" d="M411 316 C361 293 330 264 299 218 L314 207 C350 247 385 266 424 280 Z"/>
+        <path class="branch" d="M420 290 C456 263 486 227 508 188 L524 198 C505 244 476 281 435 311 Z"/>
+        <circle class="canopy c1" cx="330" cy="192" r="104"/>
+        <circle class="canopy c2" cx="438" cy="153" r="128"/>
+        <circle class="canopy c3" cx="523" cy="239" r="103"/>
+        <circle class="canopy c4" cx="379" cy="267" r="118"/>
+        <path class="house" d="M83 454 L174 382 L263 454 V542 H83 Z"/>
+        <path class="roof" d="M60 457 L174 361 L286 457 L268 472 L174 397 L78 474 Z"/>
+        <rect class="door" x="148" y="474" width="48" height="68" rx="3"/>
+        <rect class="window" x="101" y="468" width="33" height="29" rx="3"/>
+        <rect class="window" x="211" y="468" width="33" height="29" rx="3"/>
+      </svg>
+      <div class="art-card art-card-top"><span>LOCAL SERVICE</span><strong>{{ site.service_areas[0] if site.service_areas else (site.business.city or 'Your area') }}</strong></div>
+      <div class="art-card art-card-bottom"><span>START HERE</span><strong>Tell us what you need.</strong><small>We’ll send your request to {{ site.business.name }}.</small></div>
+    </div>
+  </section>
+
+  <section class="trust-strip" aria-label="Business information">
+    <div class="trust-item"><span>01</span><div><small>SERVICES</small><strong>{{ site.services|length }} verified options</strong></div></div>
+    <div class="trust-item"><span>02</span><div><small>SERVICE AREA</small><strong>{{ site.service_areas[:3]|join(' · ') if site.service_areas else (site.business.city or 'Local service') }}</strong></div></div>
+    <div class="trust-item"><span>03</span><div><small>HOURS</small><strong>{{ site.hours_lines[0] if site.hours_lines else 'Contact us for availability' }}</strong></div></div>
+  </section>
+
+  <section id="services" class="section section-services">
+    <div class="section-intro">
+      <div><span class="section-kicker">SERVICES</span><h2>Property care, made easier to start.</h2></div>
+      <p>Choose the service that best matches what you need. If you are unsure, send a general request and describe the situation.</p>
+    </div>
+    <div class="service-grid">
+      {% for s in site.services %}
+      <article class="service-card">
+        <div class="service-index">{{ '%02d'|format(loop.index) }}</div>
+        <div class="service-copy"><h3>{{ s.name }}</h3>{% if s.display_description %}<p>{{ s.display_description }}</p>{% endif %}</div>
+        <a href="#contact" aria-label="Request {{ s.name }}">Request service <span>↗</span></a>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section id="process" class="section section-process">
+    <div class="process-heading"><span class="section-kicker">HOW IT WORKS</span><h2>A clear path from request to next step.</h2></div>
+    <div class="process-grid">
+      <article><span>01</span><h3>Tell us what you need</h3><p>Share the service, location, and a few details about the work you are considering.</p></article>
+      <article><span>02</span><h3>Your request is reviewed</h3><p>Your information is sent to {{ site.business.name }} so the team can review the request.</p></article>
+      <article><span>03</span><h3>Confirm the next step</h3><p>The business can follow up with the appropriate next step based on your request and its scheduling policy.</p></article>
+    </div>
+  </section>
+
+  {% if site.presentation.about_copy %}
+  <section id="about" class="section section-about">
+    <div class="about-label"><span class="section-kicker">ABOUT</span><strong>{{ site.business.name }}</strong></div>
+    <div class="about-copy"><h2>Local service with a straightforward way to get started.</h2><p>{{ site.presentation.about_copy }}</p></div>
+  </section>
+  {% endif %}
+
+  <section class="section service-area-section">
+    <div class="service-area-copy"><span class="section-kicker">SERVICE AREA</span><h2>Working across the local area.</h2><p>Request service from one of the verified areas below. If your location is nearby but not listed, you can still send a request for review.</p></div>
+    <div class="area-board">
+      {% for area in site.service_areas %}<span>{{ area }}</span>{% else %}<span>{{ site.business.city or 'Local service area' }}</span>{% endfor %}
+    </div>
+  </section>
+
+  <section id="contact" class="contact-section">
+    <div class="contact-copy">
+      <span class="section-kicker">REQUEST AN ESTIMATE</span>
+      <h2>Tell us about the work.</h2>
+      <p>{{ site.presentation.contact_intro or 'Share a few details about what you need. Your request will be sent to the business for review.' }}</p>
+      <div class="contact-details">
+        {% if site.business.phone %}<a href="tel:{{ site.business.phone }}"><small>CALL</small><strong>{{ site.business.phone }}</strong></a>{% endif %}
+        {% if site.public_email %}<a href="mailto:{{ site.public_email }}"><small>EMAIL</small><strong>{{ site.public_email }}</strong></a>{% endif %}
+      </div>
+      {% if site.hours_lines %}<div class="hours-card"><small>BUSINESS HOURS</small>{% for line in site.hours_lines[:7] %}<span>{{ line }}</span>{% endfor %}</div>{% endif %}
+    </div>
+
+    {% if public_mode %}
+    <div class="customer-form-wrap">
+      {% if submitted %}
+      <div class="request-success"><span class="success-mark">✓</span><b>Request received.</b><p>Thanks. Your request has been sent to {{ site.business.name }} for review.</p></div>
+      {% else %}
+        <div class="form-heading"><span>ESTIMATE REQUEST</span><h3>Start your request</h3><p>Fields marked * are required.</p></div>
+        {% if errors %}<div class="request-errors"><b>Please check the form:</b><ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
+        <form method="post" action="{{ url_for('public_site_request', slug=slug) }}" class="customer-form">
+          <input type="hidden" name="nonce" value="{{ nonce }}"><input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+          <div class="form-honeypot" aria-hidden="true"><label>Company website<input name="company_website" tabindex="-1" autocomplete="off"></label></div>
+          <div class="field-row"><label><span>Name *</span><input name="name" maxlength="160" required autocomplete="name" value="{{ form.get('name','') }}"></label><label><span>Phone</span><input name="phone" maxlength="80" autocomplete="tel" value="{{ form.get('phone','') }}"></label></div>
+          <label><span>Email</span><input type="email" name="email" maxlength="254" autocomplete="email" value="{{ form.get('email','') }}"></label>
+          <label><span>What do you need?</span><select name="service"><option value="">General request</option>{% for s in site.services %}<option value="{{ s.name }}" {% if form.get('service') == s.name %}selected{% endif %}>{{ s.name }}</option>{% endfor %}</select></label>
+          <label><span>Service address</span><input name="address" maxlength="500" autocomplete="street-address" value="{{ form.get('address','') }}"></label>
+          <label><span>Preferred timing</span><input name="preferred_time" maxlength="200" placeholder="Example: weekday afternoon" value="{{ form.get('preferred_time','') }}"></label>
+          <label><span>Project details</span><textarea name="message" rows="5" maxlength="4000" placeholder="Tell us what is happening and what you would like help with.">{{ form.get('message','') }}</textarea></label>
+          <button class="button button-primary form-submit" type="submit">Send request <span>→</span></button>
+          <small class="form-note">Submitting a request does not automatically confirm an appointment.</small>
+        </form>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="preview-contact-card">
+      <span>PREVIEW CONTACT FORM</span><h3>Customer intake appears here.</h3><p>The released customer site uses this same design and adds the validated request form.</p><a class="button button-primary" href="{{ url_for('client_acceptance_lab', bid=site.business.id) }}">Open Acceptance Lab</a>
+    </div>
+    {% endif %}
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-brand"><span class="brand-emblem small" aria-hidden="true">{{ site.business.name[:1]|upper }}</span><div><strong>{{ site.business.name }}</strong>{% if site.profile.industry %}<small>{{ site.profile.industry }}</small>{% endif %}</div></div>
+  <div class="footer-meta"><span>{% if site.service_areas %}Serving {{ site.service_areas|join(' · ') }}{% else %}{{ site.profile.service_area }}{% endif %}</span><a href="#top">Back to top ↑</a></div>
+</footer>
+
+{% if public_mode %}<a class="mobile-estimate-bar" href="#contact">Request an estimate</a>{% endif %}

@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>{{ site.seo.title or site.business.name }}</title>
+  {% if site.seo.description %}<meta name="description" content="{{ site.seo.description }}">{% endif %}
+  <link rel="stylesheet" href="{{ url_for('static',filename='v14_production.css') }}?v=4">
+</head>
+<body class="site family-{{ site.blueprint.layout_family }} palette-{{ site.blueprint.palette }} type-{{ site.blueprint.type_system }}">
+{% set public_mode = true %}
+{% include '_production_site_body.html' %}
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>{{ portal.business.name }} · Business OS Owner Preview</title>
+  <link rel="stylesheet" href="{{ url_for('static',filename='v14_portal.css') }}?v=3">
+</head>
+<body>
+<div class="preview"><b>OPERATOR PREVIEW</b><span>This is the owner experience. Production client authentication is not enabled yet.</span></div>
+<div class="shell">
+  <aside>
+    <div class="brand-block"><div class="logo">B</div><div><small>MY BUSINESS</small><strong>{{ portal.business.name }}</strong></div></div>
+    <nav aria-label="Owner portal">
+      {% for key,label in [('today','Today'),('leads','Leads'),('calls','Calls'),('schedule','Schedule'),('website','Website'),('settings','Settings')] %}
+      <a class="{{ 'active' if portal.tab == key else '' }}" href="{{ url_for('client_portal_preview', bid=portal.business.id, tab=key) }}">{{ label }}</a>
+      {% endfor %}
+    </nav>
+    <div class="portal-safety"><span class="dot"></span><div><b>Preview mode</b><small>No live provider actions</small></div></div>
+  </aside>
+
+  <main>
+    <header>
+      <div>
+        <span>MY BUSINESS</span>
+        {% if portal.tab == 'today' %}<h1>Here’s what’s happening.</h1><p>Routine activity stays quiet. Decisions and exceptions rise to the top.</p>
+        {% elif portal.tab == 'leads' %}<h1>Customer opportunities.</h1><p>Every lead shown here belongs only to {{ portal.business.name }}.</p>
+        {% elif portal.tab == 'calls' %}<h1>Calls and conversations.</h1><p>Review the calls Business OS has linked to your business.</p>
+        {% elif portal.tab == 'schedule' %}<h1>Your schedule.</h1><p>Appointments and estimate requests, without promising availability automatically.</p>
+        {% elif portal.tab == 'website' %}<h1>Your customer front door.</h1><p>See the reviewed website state and the active local customer test.</p>
+        {% else %}<h1>Business settings.</h1><p>Read-only owner-verified truth used by Business OS.</p>{% endif %}
+      </div>
+      <a class="exit" href="{{ url_for('client_operations',bid=portal.business.id) }}">Exit owner preview</a>
+    </header>
+
+    {% if portal.tab == 'today' %}
+      <section class="metrics">
+        <article><span>LEADS</span><strong>{{ portal.metrics.leads }}</strong><small>Total captured</small></article>
+        <article><span>CALLS</span><strong>{{ portal.metrics.calls }}</strong><small>Client-linked</small></article>
+        <article><span>APPOINTMENTS</span><strong>{{ portal.metrics.appointments }}</strong><small>Tracked</small></article>
+        <article class="needs"><span>NEEDS YOU</span><strong>{{ portal.metrics.needs_you }}</strong><small>{{ 'Nothing urgent' if portal.metrics.needs_you == 0 else 'Review decisions' }}</small></article>
+      </section>
+
+      <section class="handled">
+        <span>BUSINESS OS</span>
+        <h2>{{ 'Nothing needs you right now.' if portal.metrics.needs_you == 0 else portal.metrics.needs_you|string + ' item(s) need your attention.' }}</h2>
+        <p>Business OS keeps routine activity out of the way and surfaces exceptions that require a human decision.</p>
+      </section>
+
+      <section class="grid">
+        <article><span>RECENT LEADS</span><h2>Customer opportunities</h2>
+          {% if portal.leads %}{% for l in portal.leads[:5] %}<div class="row"><div><b>{{ l.caller_name or 'New inquiry' }}</b><small>{{ l.service_type or l.source or 'Intake' }}</small></div><b>{{ l.status }}</b></div>{% endfor %}
+          {% else %}<div class="empty"><b>No leads yet.</b><small>Website and receptionist inquiries will appear here.</small></div>{% endif %}
+        </article>
+        <article><span>WEBSITE</span><h2>Your customer front door</h2><p>{{ portal.releases|length }} release(s) in history.</p>
+          {% if portal.active_release %}<a class="portal-button" target="_blank" rel="noopener" href="{{ url_for('public_site', slug=portal.active_release.public_slug) }}">Open customer site ↗</a>
+          {% else %}<small>{{ 'Reviewed website preview ready for operator testing.' if portal.workspace.has_reviewed_preview else 'Website still needs a reviewed preview.' }}</small>{% endif %}
+        </article>
+      </section>
+
+    {% elif portal.tab == 'leads' %}
+      <section class="content-card"><div class="card-head"><div><span>LEADS</span><h2>Customer opportunities</h2></div><strong>{{ portal.metrics.leads }}</strong></div>
+      {% if portal.leads %}<div class="list-table">{% for l in portal.leads %}<article><div><b>{{ l.caller_name or 'New inquiry' }}</b><small>{{ l.phone or 'No phone' }}{% if l.address %} · {{ l.address }}{% endif %}</small></div><div><b>{{ l.service_type or 'General request' }}</b><small>{{ l.source }} · {{ l.created_at }}</small></div><span class="pill">{{ l.status }}</span></article>{% endfor %}</div>
+      {% else %}<div class="empty roomy"><b>No customer opportunities yet.</b><small>Submit a request through the local customer site to test this end to end.</small></div>{% endif %}</section>
+
+    {% elif portal.tab == 'calls' %}
+      <section class="content-card"><div class="card-head"><div><span>CALLS</span><h2>Recent conversations</h2></div><strong>{{ portal.metrics.calls }}</strong></div>
+      {% if portal.calls %}<div class="list-table">{% for c in portal.calls %}<article><div><b>{{ c.caller_phone or 'Unknown caller' }}</b><small>{{ c.created_at }}</small></div><div class="wide"><b>{{ c.call_status }}</b><small>{{ c.summary or 'No summary available.' }}</small></div><span class="pill">{{ c.duration_seconds }}s</span></article>{% endfor %}</div>
+      {% else %}<div class="empty roomy"><b>No calls yet.</b><small>Calls will appear here only when they are correctly linked to this business.</small></div>{% endif %}</section>
+
+    {% elif portal.tab == 'schedule' %}
+      <section class="content-card"><div class="card-head"><div><span>SCHEDULE</span><h2>Appointments and estimates</h2></div><strong>{{ portal.metrics.appointments }}</strong></div>
+      {% if portal.appointments %}<div class="list-table">{% for a in portal.appointments %}<article><div><b>{{ a.caller_name or 'Customer' }}</b><small>{{ a.phone or 'No phone' }}</small></div><div><b>{{ a.service_type or 'Estimate' }}</b><small>{{ a.start_at }}{% if a.address %} · {{ a.address }}{% endif %}</small></div><span class="pill">{{ a.status }}</span></article>{% endfor %}</div>
+      {% else %}<div class="empty roomy"><b>Nothing scheduled.</b><small>Business OS may collect preferred times, but it will not promise an appointment unless your configured policy allows it.</small></div>{% endif %}</section>
+
+    {% elif portal.tab == 'website' %}
+      <section class="grid website-grid">
+        <article><span>WEBSITE STATUS</span><h2>{{ 'Local customer test active' if portal.active_release else 'Ready for operator release test' if portal.workspace.has_reviewed_preview else 'Needs reviewed preview' }}</h2>
+          <div class="status-stack"><div><small>Reviewed preview</small><b>{{ 'Version ' ~ portal.workspace.reviewed_preview_version if portal.workspace.has_reviewed_preview else 'Not selected' }}</b></div><div><small>Production design</small><b>{{ portal.workspace.design_state|capitalize }}</b></div><div><small>Release history</small><b>{{ portal.releases|length }}</b></div></div>
+        </article>
+        <article><span>CUSTOMER VIEW</span><h2>What customers see</h2>
+          {% if portal.active_release %}<p>The active local release is frozen and testable without publishing to the internet.</p><a class="portal-button" target="_blank" rel="noopener" href="{{ url_for('public_site', slug=portal.active_release.public_slug) }}">Open customer site ↗</a>
+          {% else %}<p>No local customer release is active yet. The Business OS operator creates it only after the reviewed design passes its gates.</p>{% endif %}
+        </article>
+      </section>
+      {% if portal.releases %}<section class="content-card"><div class="card-head"><div><span>HISTORY</span><h2>Website releases</h2></div></div><div class="release-list">{% for r in portal.releases[:10] %}<div><b>Release #{{ r.id }}</b><span>Website version {{ r.website_version_id }} · {{ r.status }}{% if r.is_active %} · ACTIVE TEST{% endif %}</span><small>{{ r.created_at }}</small></div>{% endfor %}</div></section>{% endif %}
+
+    {% elif portal.tab == 'settings' %}
+      <section class="content-card"><div class="card-head"><div><span>OWNER-VERIFIED TRUTH</span><h2>What Business OS is allowed to know</h2></div><span class="read-only">READ ONLY</span></div>
+        <div class="settings-grid">
+          <div><small>Industry</small><b>{{ portal.config.profile.industry or portal.business.category or 'Not set' }}</b></div>
+          <div><small>Service area</small><b>{{ portal.config.profile.service_area or 'Not set' }}</b></div>
+          <div><small>Business hours</small><b class="preline">{{ portal.config.profile.business_hours or 'Not set' }}</b></div>
+          <div><small>Messaging tone</small><b>{{ portal.config.profile.messaging_tone or 'Not set' }}</b></div>
+          <div class="span-2"><small>Scheduling policy</small><b>{{ portal.config.profile.scheduling_policy or 'Not set' }}</b></div>
+        </div>
+      </section>
+      <section class="content-card"><div class="card-head"><div><span>SERVICES</span><h2>Verified service catalog</h2></div><strong>{{ portal.config.active_services }}</strong></div><div class="chips">{% for s in portal.config.services if s.active %}<span>{{ s.name }}</span>{% else %}<span>No active services.</span>{% endfor %}</div></section>
+    {% endif %}
+  </main>
+</div>
+</body>
+</html>

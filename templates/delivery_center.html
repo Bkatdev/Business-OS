@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Customer Delivery · {{ business.name }}{% endblock %}
+{% block page_title %}Customer Delivery{% endblock %}
+{% block page_subtitle %}Prove the reviewed production website → intake → lead loop before external publishing.{% endblock %}
+{% block actions %}
+<a class="btn secondary" href="{{ url_for('client_operations', bid=business.id) }}">← Client</a>
+<a class="btn secondary" href="{{ url_for('website_studio', bid=business.id) }}">Website Studio</a>
+{% endblock %}
+{% block content %}
+{% include "_client_workspace_nav.html" %}
+<section class="v14-delivery-hero panel v9-panel">
+  <div><span class="section-kicker">CUSTOMER DELIVERY LOOP</span><h2>{{ business.name }}</h2><p>This surface is a local production simulation. It never deploys to the internet or enables live automation.</p></div>
+  <div class="v14-delivery-state"><strong>{{ 'READY' if delivery.readiness.ready else 'BLOCKED' }}</strong><span>{{ delivery.readiness.checks|selectattr('ok','equalto',true)|list|length }}/{{ delivery.readiness.checks|length }} gates passed</span></div>
+</section>
+
+<section class="v14-delivery-grid">
+  <article class="panel v9-panel">
+    <div class="v9-section-head"><div><span class="section-kicker">RELEASE GATE</span><h3>Can we deliver this website?</h3></div></div>
+    <div class="v14-gate-list">{% for check in delivery.readiness.checks %}<div class="{{ 'ok' if check.ok else 'blocked' }}"><span>{{ '✓' if check.ok else '!' }}</span><strong>{{ check.label }}</strong></div>{% endfor %}</div>
+    <form method="post" action="{{ url_for('delivery_release', bid=business.id) }}"><button class="btn primary" {% if not delivery.readiness.ready %}disabled{% endif %}>Create Production Local Release</button></form>
+    <p class="help">A release freezes the production design that matches the explicitly reviewed Website Studio version. Later edits cannot silently change it.</p>
+  </article>
+  <article class="panel v9-panel">
+    <div class="v9-section-head"><div><span class="section-kicker">ACTIVE TEST SITE</span><h3>Customer journey</h3></div></div>
+    {% if delivery.active_release %}
+      <p><strong>Release #{{ delivery.active_release.id }}</strong> · Website version {{ delivery.active_release.website_version_id }}</p>
+      <a class="btn primary" target="_blank" rel="noopener" href="{{ url_for('public_site', slug=delivery.active_release.public_slug) }}">Open Customer Site ↗</a>
+      <p class="help">Submit a test inquiry there, then confirm the canonical lead appears below and in Leads.</p>
+    {% else %}<div class="v9-empty"><strong>No active local release.</strong><span>Create one after all release gates pass.</span></div>{% endif %}
+  </article>
+</section>
+
+<section class="panel v9-panel">
+  <div class="v9-section-head"><div><span class="section-kicker">INTAKE PROOF</span><h3>Recent website submissions</h3></div><span class="count-bubble">{{ delivery.submissions|length }}</span></div>
+  {% if delivery.submissions %}<div class="v14-submission-list">{% for s in delivery.submissions %}<article><div><strong>{{ s.submitted_name or 'Unknown visitor' }}</strong><span>{{ s.submitted_service or 'General request' }} · {{ s.status }}</span></div><div>{% if s.lead_id %}<a href="{{ url_for('lead_detail', lead_id=s.lead_id) }}">Lead #{{ s.lead_id }}</a>{% endif %}<small>{{ s.created_at }}</small></div></article>{% endfor %}</div>{% else %}<div class="v9-empty"><strong>No website submissions yet.</strong><span>Once a local release is active, submit the customer form to prove the loop.</span></div>{% endif %}
+</section>
+
+<section class="panel v9-panel">
+  <div class="v9-section-head"><div><span class="section-kicker">IMMUTABLE HISTORY</span><h3>Release history</h3></div></div>
+  {% if delivery.releases %}<div class="v14-release-list">{% for r in delivery.releases %}<div><strong>Release #{{ r.id }}</strong><span>Website version {{ r.website_version_id }} · {{ r.status }}{% if r.is_active %} · ACTIVE LOCAL TEST{% endif %}</span><small>{{ r.artifact_sha256[:12] }} · {{ r.created_at }}</small></div>{% endfor %}</div>{% else %}<div class="v9-empty"><strong>No releases yet.</strong></div>{% endif %}
+</section>
+{% endblock %}

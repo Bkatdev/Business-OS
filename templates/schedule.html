@@ -1,8 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Schedule · Business OS{% endblock %}
 {% block heading %}Schedule{% endblock %}
-{% block actions %}<a class="btn" href="{{ url_for('leads') }}">Schedule from a Lead</a>{% endblock %}
+{% block actions %}<a class="btn" href="{{ url_for('leads', business_id=business.id) if business else url_for('leads') }}">Schedule from a Lead</a>{% endblock %}
 {% block content %}
+{% if business %}{% include "_client_workspace_nav.html" %}{% endif %}
+
 <div class="ops-page-head">
     <div><span class="section-kicker">FIELD OPERATIONS</span><h2>Estimate Schedule</h2><p>One board for every confirmed estimate. Scheduling a lead here changes the CRM state automatically.</p></div>
     <div class="ops-head-stat"><span>Today</span><strong>{{ schedule.today|length }}</strong><small>scheduled estimates</small></div>

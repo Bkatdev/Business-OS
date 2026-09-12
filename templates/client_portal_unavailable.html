@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Owner Preview · {{ business.name }}{% endblock %}
+{% block heading %}Owner Preview{% endblock %}
+{% block actions %}<a class="btn secondary" href="{{ url_for('client_operations', bid=business.id) }}">Back to client</a>{% endblock %}
+{% block content %}
+{% include "_client_workspace_nav.html" %}
+<section class="panel recovery-panel">
+  <span class="section-kicker">PREVIEW NEEDS ATTENTION</span>
+  <h2>Owner preview could not be prepared.</h2>
+  <p>Nothing was published and no live action was taken. Return to the client workspace or Website Studio and try again after the missing state is corrected.</p>
+  <div class="recovery-actions"><a class="btn" href="{{ url_for('client_operations', bid=business.id) }}">Client overview</a><a class="btn secondary" href="{{ url_for('website_studio', bid=business.id) }}">Website</a></div>
+  {% if reason %}<details><summary>Technical detail</summary><code>{{ reason }}</code></details>{% endif %}
+</section>
+{% endblock %}

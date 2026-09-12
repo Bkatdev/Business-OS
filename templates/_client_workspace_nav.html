@@ -1,0 +1,11 @@
+{% set client_endpoint = request.endpoint or '' %}
+<nav class="client-workspace-nav" aria-label="Client workspace">
+  <a class="{{ 'active' if client_endpoint == 'client_operations' else '' }}" href="{{ url_for('client_operations', bid=business.id) }}">Overview</a>
+  <a class="{{ 'active' if client_endpoint in ['website_studio','production_design_studio','production_site_preview','delivery_center'] else '' }}" href="{{ url_for('website_studio', bid=business.id) }}">Website</a>
+  <a class="{{ 'active' if client_endpoint == 'leads' else '' }}" href="{{ url_for('leads', business_id=business.id) }}">Leads</a>
+  <a class="{{ 'active' if client_endpoint == 'calls' else '' }}" href="{{ url_for('calls', business_id=business.id) }}">Communications</a>
+  <a class="{{ 'active' if client_endpoint == 'schedule' else '' }}" href="{{ url_for('schedule', business_id=business.id) }}">Schedule</a>
+  <a class="{{ 'active' if client_endpoint in ['business_configuration','client_onboarding'] else '' }}" href="{{ url_for('business_configuration', bid=business.id) }}">Settings</a>
+  <a class="owner-preview-link {{ 'active' if client_endpoint == 'client_portal_preview' else '' }}" href="{{ url_for('client_portal_preview', bid=business.id) }}" target="_blank" rel="noopener">Owner Preview ↗</a>
+  <a class="test-journey-link {{ 'active' if client_endpoint == 'client_acceptance_lab' else '' }}" href="{{ url_for('client_acceptance_lab', bid=business.id) }}">Test Journey</a>
+</nav>

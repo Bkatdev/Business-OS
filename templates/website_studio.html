@@ -8,9 +8,13 @@
 {% if preview %}
 <a class="btn" href="{{ url_for('website_preview', bid=business.id) }}" target="_blank" rel="noopener">Open Preview</a>
 {% endif %}
+
+<a class="btn secondary" href="{{ url_for('production_design_studio', bid=business.id) }}">Production Design</a>
+    <a class="btn secondary" href="{{ url_for('delivery_center', bid=business.id) }}">Customer Delivery</a>
 {% endblock %}
 
 {% block content %}
+{% include "_client_workspace_nav.html" %}
 
 <div class="v12-studio-shell">
 

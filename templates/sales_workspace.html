@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Sales Workspace · {{ ws.business.name }} · Business OS{% endblock %}
+{% block heading %}Sales Workspace{% endblock %}
+{% block actions %}
+<a class="btn secondary" href="{{ url_for('founder_command') }}">← Founder HQ</a>
+<a class="btn secondary" href="{{ url_for('business_detail', bid=ws.business.id) }}">Prospect Intelligence</a>
+<a class="btn secondary" href="{{ url_for('prospect_concept_workspace', bid=ws.business.id) }}">Website Concepts</a>
+{% endblock %}
+
+{% block content %}
+<section class="v14-sales-hero">
+  <div>
+    <span class="section-kicker">FOUNDER SALES WORKSPACE</span>
+    <h2>{{ ws.business.name }}</h2>
+    <p>{{ ws.business.category }}{% if ws.business.city %} · {{ ws.business.city }}{% endif %} · Pipeline: <strong>{{ ws.business.status }}</strong></p>
+  </div>
+  <div class="v14-sales-hero-actions">
+    {% if ws.concept_count %}
+      <a class="btn primary" href="{{ url_for('prospect_concept_preview', bid=ws.business.id, concept_id=ws.concepts[0].id) }}" target="_blank" rel="noopener">Open Latest Concept ↗</a>
+    {% else %}
+      <a class="btn primary" href="{{ url_for('prospect_concept_workspace', bid=ws.business.id) }}">Build Private Concept</a>
+    {% endif %}
+    <a class="btn secondary" href="#conversion">Owner Verification</a>
+  </div>
+</section>
+
+<section class="v14-sales-grid">
+  <article class="panel v9-panel v14-battle-card">
+    <div class="v9-section-head">
+      <div><span class="section-kicker">BATTLE CARD</span><h3>What to lead with</h3></div>
+      <span class="v12-chip">{{ ws.sales.recommended_plan }}</span>
+    </div>
+    <p class="v14-lead-copy">{{ ws.sales.plan_reason }}</p>
+    {% if ws.sales.pitch_points %}
+      <h4>Evidence-backed talking points</h4>
+      <ul class="v14-clean-list">{% for item in ws.sales.pitch_points %}<li>{{ item }}</li>{% endfor %}</ul>
+    {% endif %}
+    <h4>Do not overclaim</h4>
+    <ul class="v14-clean-list v14-caution-list">{% for item in ws.sales.cautions %}<li>{{ item }}</li>{% endfor %}</ul>
+  </article>
+
+  <article class="panel v9-panel">
+    <div class="v9-section-head"><div><span class="section-kicker">CONTACT</span><h3>Known public contact</h3></div></div>
+    <dl class="v14-contact-list">
+      <div><dt>Phone</dt><dd>{{ ws.business.phone or 'Unknown' }}</dd></div>
+      <div><dt>Email</dt><dd>{{ ws.business.email or 'Unknown' }}</dd></div>
+      <div><dt>Website</dt><dd>{% if ws.business.safe_website_url %}<a href="{{ ws.business.safe_website_url }}" target="_blank" rel="noopener">Open public site ↗</a>{% else %}Unknown{% endif %}</dd></div>
+      <div><dt>Concepts</dt><dd>{{ ws.concept_count }}</dd></div>
+    </dl>
+    <p class="help">Public prospect contact details are research inputs, not owner-verified production truth.</p>
+  </article>
+</section>
+
+<section class="panel v9-panel">
+  <div class="v9-section-head"><div><span class="section-kicker">OUTREACH</span><h3>Grounded founder drafts</h3><p>Nothing is sent automatically. Copy, personalize, then log what actually happened.</p></div></div>
+  <div class="v14-draft-grid">
+    <article><span>Email subject</span><textarea readonly rows="2">{{ ws.drafts.email_subject }}</textarea><span>Email</span><textarea readonly rows="7">{{ ws.drafts.email_body }}</textarea></article>
+    <article><span>Text</span><textarea readonly rows="5">{{ ws.drafts.text_body }}</textarea><span>Call opener</span><textarea readonly rows="5">{{ ws.drafts.call_opener }}</textarea></article>
+  </div>
+</section>
+
+<section class="v14-sales-grid">
+  <article class="panel v9-panel">
+    <div class="v9-section-head"><div><span class="section-kicker">LOG REAL ACTIVITY</span><h3>Record the conversation</h3></div></div>
+    <form method="post" action="{{ url_for('sales_log_interaction', bid=ws.business.id) }}" class="v14-sales-form">
+      <div class="form-grid">
+        <div><label>What happened</label><select name="interaction_type" required>{% for key,label in ws.interaction_types.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></div>
+        <div><label>Channel</label><select name="channel">{% for key,label in ws.channels.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></div>
+      </div>
+      <label>Summary</label><textarea name="summary" rows="4" maxlength="2000" placeholder="What did the owner say? What matters next?"></textarea>
+      <div class="form-grid">
+        <div><label>Follow-up date/time (optional)</label><input type="datetime-local" name="follow_up_at"></div>
+        <div><label>Follow-up reason</label><input type="text" name="follow_up_reason" maxlength="500" placeholder="Send concept again, call after estimate rush..."></div>
+      </div>
+      <button class="btn primary" type="submit">Save Activity</button>
+    </form>
+  </article>
+
+  <article class="panel v9-panel">
+    <div class="v9-section-head"><div><span class="section-kicker">FOLLOW-UP</span><h3>What needs you next</h3></div><span class="count-bubble">{{ ws.followups|selectattr('status','equalto','OPEN')|list|length }}</span></div>
+    {% set open_followups = ws.followups|selectattr('status','equalto','OPEN')|list %}
+    {% if open_followups %}
+      <div class="v14-followup-list">{% for item in open_followups %}<div><div><strong>{{ item.due_at|replace('T',' ') }}</strong><span>{{ item.reason }}</span></div><form method="post" action="{{ url_for('sales_complete_followup', bid=ws.business.id, followup_id=item.id) }}"><button class="btn secondary" type="submit">Done</button></form></div>{% endfor %}</div>
+    {% else %}<div class="v9-empty"><strong>No open follow-up.</strong><span>Log an interaction and choose a follow-up time when one is needed.</span></div>{% endif %}
+  </article>
+</section>
+
+<section class="panel v9-panel">
+  <div class="v9-section-head"><div><span class="section-kicker">HISTORY</span><h3>Sales timeline</h3></div><span class="count-bubble">{{ ws.interactions|length }}</span></div>
+  {% if ws.interactions %}<div class="v14-sales-timeline">{% for item in ws.interactions %}<article><span>{{ ws.interaction_types.get(item.interaction_type, item.interaction_type) }} · {{ ws.channels.get(item.channel, item.channel) }}</span><strong>{{ item.occurred_at }}</strong>{% if item.summary %}<p>{{ item.summary }}</p>{% endif %}<small>Pipeline after event: {{ item.pipeline_status or ws.business.status }}</small></article>{% endfor %}</div>{% else %}<div class="v9-empty"><strong>No sales activity logged yet.</strong><span>The timeline starts when you actually contact or speak with the owner.</span></div>{% endif %}
+</section>
+
+<section id="conversion" class="panel v9-panel v14-conversion-panel">
+  <div class="v9-section-head"><div><span class="section-kicker">PROSPECT → CLIENT</span><h3>Owner verification gate</h3><p>Do not copy public research into production truth. Enter only information the owner explicitly confirmed.</p></div>{% if ws.conversion and ws.conversion.verification_status == 'CONVERTED' %}<span class="v12-chip">Converted</span>{% else %}<span class="v12-chip">Owner verification required</span>{% endif %}</div>
+  {% set cv = ws.conversion or {} %}
+  <form method="post" action="{{ url_for('sales_save_conversion', bid=ws.business.id) }}" class="v14-sales-form">
+    <div class="form-grid">
+      <div><label>Owner / decision maker</label><input name="owner_name" value="{{ cv.get('owner_name','') }}" placeholder="Name confirmed in conversation"></div>
+      <div><label>Owner-confirmed business name</label><input name="verified_business_name" value="{{ cv.get('verified_business_name','') }}" placeholder="Legal or operating name the owner confirmed"></div>
+      <div><label>Owner-confirmed industry</label><input name="verified_industry" value="{{ cv.get('verified_industry','') }}" placeholder="How the owner describes the business"></div>
+    </div>
+    <div class="form-grid">
+      <div><label>Owner-confirmed phone</label><input name="verified_phone" value="{{ cv.get('verified_phone','') }}" placeholder="Do not assume the public number"></div>
+      <div><label>Owner-confirmed email</label><input type="email" name="verified_email" value="{{ cv.get('verified_email','') }}" placeholder="Do not assume the public email"></div>
+    </div>
+    <label>Services the owner confirmed</label><textarea name="services" rows="3" placeholder="Only services the owner confirmed">{{ cv.get('services','') }}</textarea>
+    <div class="form-grid">
+      <div><label>Business hours</label><textarea name="business_hours" rows="3">{{ cv.get('business_hours','') }}</textarea></div>
+      <div><label>Service area</label><textarea name="service_area" rows="3">{{ cv.get('service_area','') }}</textarea></div>
+    </div>
+    <div class="form-grid">
+      <div><label>Emergency / safety rules</label><textarea name="emergency_rules" rows="4">{{ cv.get('emergency_rules','') }}</textarea></div>
+      <div><label>Escalation instructions</label><textarea name="escalation_instructions" rows="4">{{ cv.get('escalation_instructions','') }}</textarea></div>
+      <div><label>Scheduling policy</label><textarea name="scheduling_policy" rows="4">{{ cv.get('scheduling_policy','') }}</textarea></div>
+    </div>
+    <div class="form-grid"><div><label>Messaging tone</label><input name="messaging_tone" value="{{ cv.get('messaging_tone','Professional, warm, concise') }}"></div><div><label>Onboarding notes</label><input name="onboarding_notes" value="{{ cv.get('onboarding_notes','') }}"></div></div>
+    <button class="btn secondary" type="submit">Save Verification Draft</button>
+  </form>
+  <div class="v14-conversion-action">
+    <div><strong>Conversion does not activate automation.</strong><span>It creates owner-verified production context and moves the business to ONBOARDING. Existing readiness and activation gates still control production.</span></div>
+    <form method="post" action="{{ url_for('sales_convert_to_client', bid=ws.business.id) }}"><button class="btn primary" type="submit" {% if cv.get('verification_status') == 'CONVERTED' %}disabled{% endif %}>Convert to Onboarding</button></form>
+  </div>
+</section>
+{% endblock %}

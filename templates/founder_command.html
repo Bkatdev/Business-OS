@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Founder HQ · Business OS{% endblock %}
+{% block heading %}Founder HQ{% endblock %}
+{% block actions %}<a class="btn secondary" href="{{ url_for('prospects') }}">All Prospects</a>{% endblock %}
+{% block content %}
+<section class="v14-hero">
+  <div><span class="section-kicker">REVENUE COMMAND CENTER</span><h2>Work the few prospects most likely to move.</h2><p>Audit, concepts, conversations and follow-ups now resolve into one founder queue.</p></div>
+  <div class="v14-locks"><strong>Founder controlled</strong><span>No autonomous outreach · publishing locked</span></div>
+</section>
+
+<section class="v14-metrics" aria-label="Founder pipeline metrics">
+  <article><span>Ready to contact</span><strong>{{ command.metrics.ready_to_contact }}</strong></article>
+  <article><span>Follow-ups due</span><strong>{{ command.metrics.followups_due }}</strong></article>
+  <article><span>Conversations</span><strong>{{ command.metrics.active_conversations }}</strong></article>
+  <article><span>Private concepts</span><strong>{{ command.metrics.with_concepts }}</strong></article>
+  <article><span>New onboarding</span><strong>{{ command.metrics.onboarding }}</strong></article>
+</section>
+
+<section class="panel v9-panel v14-queue">
+  <div class="v9-section-head"><div><span class="section-kicker">NEXT BEST WORK</span><h3>Founder queue</h3><p>Overdue follow-ups rise first, then active conversations, concept-ready prospects and unprepared opportunities.</p></div><span class="count-bubble">{{ command.queue|length }}</span></div>
+  {% if command.queue %}<div class="v14-prospect-list">
+    {% for item in command.queue %}{% set b=item.business %}
+    <article>
+      <div class="v14-prospect-main">
+        <div class="v14-title-row"><a href="{{ url_for('sales_workspace', bid=b.id) }}"><strong>{{ b.name }}</strong></a><span class="v12-chip">{{ item.analysis.level }}</span></div>
+        <span>{{ b.category }}{% if b.city %} · {{ b.city }}{% endif %}</span>
+        <p>{{ item.sales.plan_reason }}</p>
+        <div class="v14-meta"><span>Pipeline: {{ b.status }}</span><span>Audit: {{ b.audit_status|replace('_',' ')|title }}</span><span>Concepts: {{ item.concept_count }}</span>{% if item.followup %}<span>Follow-up: {{ item.followup.due_at|replace('T',' ') }}</span>{% endif %}{% if item.analysis.score is not none %}<span>Opportunity: {{ item.analysis.score }}/100</span>{% endif %}</div>
+      </div>
+      <div class="v14-next"><small>NEXT</small><strong>{{ item.next_action }}</strong>
+        {% if item.action_kind == 'concept' %}<a class="btn" href="{{ url_for('prospect_concept_workspace', bid=b.id) }}">Open Studio</a>
+        {% elif item.action_kind == 'audit' %}<a class="btn" href="{{ url_for('business_detail', bid=b.id) }}">Open Prospect</a>
+        {% else %}<a class="btn" href="{{ url_for('sales_workspace', bid=b.id) }}">Open Sales</a>{% endif %}
+      </div>
+    </article>{% endfor %}
+  </div>{% else %}<div class="v9-empty large"><strong>No active prospects yet.</strong><span>Use Prospects to discover or add the first business.</span></div>{% endif %}
+</section>
+
+<section class="v14-foundation-grid">
+  <article class="panel v9-panel"><span class="section-kicker">PIPELINE RULE</span><h3>Public research stays public.</h3><p>Prospect evidence can guide a pitch, but owner verification is required before it becomes production business truth.</p><small>Conversion enters ONBOARDING with automation disabled.</small></article>
+  <article class="panel v9-panel"><span class="section-kicker">COST DISCIPLINE</span><h3>{{ command.usage.event_count }} metered provider events</h3><p>${{ '%.4f'|format(command.usage.tracked_cost) }} tracked cost so far.</p><small>Unknown provider pricing remains unknown rather than silently treated as free.</small></article>
+</section>
+{% endblock %}

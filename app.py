@@ -18,7 +18,7 @@ from flask import (
 )
 
 from services.db import connect, init_db, now_iso
-from services.prospect_finder import discover
+from services.v14_discovery import discover
 from services.scoring import opportunity_analysis
 from services.website_auditor import audit_batch, audit_business_by_id
 from services.lead_triage import triage_lead
@@ -56,6 +56,25 @@ from services.v13_concepts import (
     next_concept_number,
 )
 from services.v13_sales import build_sales_brief
+from services.founder_command import build_founder_command
+from services.v14_sales_workspace import (
+    build_sales_workspace,
+    log_sales_interaction,
+    complete_followup,
+    save_conversion_draft,
+    convert_to_onboarding,
+)
+from services.v14_delivery import (
+    delivery_dashboard,
+    create_local_release,
+    active_release_by_slug,
+    issue_form_nonce,
+    submit_public_intake,
+)
+from services.v14_production_site import generate_design as generate_production_design, selected_design, production_model
+from services.v14_client_portal import portal_view
+from services.v14_client_experience import client_workspace_state, owner_preview_state
+from services.v14_acceptance import acceptance_state
 from services.front_office_intelligence import (
     ensure_front_office_schema, lead_intelligence, link_lead_service,
     save_intake_answer, unified_timeline, build_front_office_queue,
@@ -386,6 +405,92 @@ def dashboard():
         pipeline_max=pipeline_max,
         control=control_summary,
     )
+
+
+@app.route("/founder")
+def founder_command():
+    conn = connect()
+    try:
+        command = build_founder_command(conn)
+    finally:
+        conn.close()
+    return render_template("founder_command.html", command=command)
+
+
+@app.route("/business/<int:bid>/sales")
+def sales_workspace(bid):
+    conn = connect()
+    try:
+        try:
+            workspace = build_sales_workspace(conn, bid)
+        except LookupError:
+            return render_template("404.html"), 404
+    finally:
+        conn.close()
+    return render_template("sales_workspace.html", ws=workspace)
+
+
+@app.route("/business/<int:bid>/sales/log", methods=["POST"])
+def sales_log_interaction(bid):
+    conn = connect()
+    try:
+        try:
+            new_status = log_sales_interaction(
+                conn,
+                business_id=bid,
+                interaction_type=request.form.get("interaction_type", ""),
+                channel=request.form.get("channel", "OTHER"),
+                summary=request.form.get("summary", ""),
+                follow_up_at=request.form.get("follow_up_at", ""),
+                follow_up_reason=request.form.get("follow_up_reason", ""),
+            )
+            flash(f"Sales activity saved. Pipeline is now {new_status}.", "success")
+        except (LookupError, ValueError) as exc:
+            flash(str(exc), "error")
+    finally:
+        conn.close()
+    return redirect(url_for("sales_workspace", bid=bid))
+
+
+@app.route("/business/<int:bid>/sales/followup/<int:followup_id>/complete", methods=["POST"])
+def sales_complete_followup(bid, followup_id):
+    conn = connect()
+    try:
+        try:
+            changed = complete_followup(conn, business_id=bid, followup_id=followup_id)
+            flash("Follow-up completed." if changed else "Follow-up was already closed.", "success")
+        except LookupError as exc:
+            flash(str(exc), "error")
+    finally:
+        conn.close()
+    return redirect(url_for("sales_workspace", bid=bid))
+
+
+@app.route("/business/<int:bid>/sales/conversion", methods=["POST"])
+def sales_save_conversion(bid):
+    conn = connect()
+    try:
+        try:
+            save_conversion_draft(conn, business_id=bid, values=request.form)
+            flash("Owner-verification draft saved. Nothing was activated.", "success")
+        except (LookupError, ValueError) as exc:
+            flash(str(exc), "error")
+    finally:
+        conn.close()
+    return redirect(url_for("sales_workspace", bid=bid) + "#conversion")
+
+
+@app.route("/business/<int:bid>/sales/convert", methods=["POST"])
+def sales_convert_to_client(bid):
+    conn = connect()
+    try:
+        ok, message = convert_to_onboarding(conn, business_id=bid)
+    finally:
+        conn.close()
+    flash(message, "success" if ok else "error")
+    if ok:
+        return redirect(url_for("business_configuration", bid=bid))
+    return redirect(url_for("sales_workspace", bid=bid) + "#conversion")
 
 
 @app.route("/prospects")
@@ -1419,25 +1524,23 @@ def global_search():
 
 def leads():
     conn = connect()
-
+    raw_business = request.args.get("business_id", "").strip()
+    business_id = int(raw_business) if raw_business.isdigit() else None
+    where = "WHERE leads.business_id = ?" if business_id is not None else ""
+    args = (business_id,) if business_id is not None else ()
     rows = conn.execute(
-        """
-        SELECT
-            leads.*,
-            businesses.name AS business_name
+        f"""
+        SELECT leads.*, businesses.name AS business_name
         FROM leads
-        LEFT JOIN businesses
-            ON businesses.id = leads.business_id
+        LEFT JOIN businesses ON businesses.id = leads.business_id
+        {where}
         ORDER BY leads.id DESC
-        """
+        """,
+        args,
     ).fetchall()
-
+    business = conn.execute("SELECT * FROM businesses WHERE id=?", (business_id,)).fetchone() if business_id is not None else None
     conn.close()
-
-    return render_template(
-        "leads.html",
-        leads=rows,
-    )
+    return render_template("leads.html", leads=rows, business=business, business_id=business_id)
 
 @app.route("/lead/<int:lead_id>")
 def lead_detail(lead_id):
@@ -1806,28 +1909,24 @@ def add_lead_note(lead_id):
 @app.route("/calls")
 def calls():
     conn = connect()
-
+    raw_business = request.args.get("business_id", "").strip()
+    business_id = int(raw_business) if raw_business.isdigit() else None
+    where = "WHERE calls.business_id = ?" if business_id is not None else ""
+    args = (business_id,) if business_id is not None else ()
     rows = conn.execute(
-        """
-        SELECT
-            calls.*,
-            leads.caller_name AS caller_name,
-            businesses.name AS business_name
+        f"""
+        SELECT calls.*, leads.caller_name AS caller_name, businesses.name AS business_name
         FROM calls
-        LEFT JOIN leads
-            ON leads.id = calls.lead_id
-        LEFT JOIN businesses
-            ON businesses.id = calls.business_id
+        LEFT JOIN leads ON leads.id = calls.lead_id
+        LEFT JOIN businesses ON businesses.id = calls.business_id
+        {where}
         ORDER BY calls.id DESC
-        """
+        """,
+        args,
     ).fetchall()
-
+    business = conn.execute("SELECT * FROM businesses WHERE id=?", (business_id,)).fetchone() if business_id is not None else None
     conn.close()
-
-    return render_template(
-        "calls.html",
-        calls=rows,
-    )
+    return render_template("calls.html", calls=rows, business=business, business_id=business_id)
 
 
 
@@ -2035,6 +2134,179 @@ def business_configuration(bid):
     readiness = readiness_for_business(conn, business)
     conn.close()
     return render_template("business_configuration.html", business=business, config=config, readiness=readiness)
+
+
+
+@app.route("/client/<int:bid>/design")
+def production_design_studio(bid):
+    conn=connect(); business=conn.execute("SELECT * FROM businesses WHERE id=?",(bid,)).fetchone()
+    if business is None: conn.close(); return render_template("404.html"),404
+    design=selected_design(conn,bid); conn.close(); return render_template("production_design_studio.html",business=business,design=design)
+
+@app.route("/client/<int:bid>/design/generate",methods=["POST"])
+def production_site_generate(bid):
+    conn=connect()
+    try: generate_production_design(conn,bid,request.form.get("creative_brief","")); flash("Production design generated from reviewed truth.","success")
+    except (LookupError,ValueError) as exc: flash(str(exc),"error")
+    finally: conn.close()
+    return redirect(url_for("production_design_studio",bid=bid))
+
+@app.route("/client/<int:bid>/design/preview")
+def production_site_preview(bid):
+    conn=connect(); business=conn.execute("SELECT * FROM businesses WHERE id=?",(bid,)).fetchone()
+    if business is None: conn.close(); return render_template("404.html"),404
+    try: site=production_model(conn,bid)
+    except (LookupError,ValueError) as exc: conn.close(); flash(str(exc),"error"); return redirect(url_for("production_design_studio",bid=bid))
+    conn.close(); return render_template("production_site_preview.html",site=site,bp=site["blueprint"],business=business)
+
+@app.route("/client/<int:bid>/owner-preview")
+def client_portal_preview(bid):
+    conn = connect()
+    tab = request.args.get("tab", "today")
+    try:
+        portal = owner_preview_state(conn, bid, tab=tab)
+    except LookupError:
+        conn.close()
+        return render_template("404.html"), 404
+    except Exception as exc:
+        # Operator preview must fail visibly and recoverably rather than strand the user.
+        business = conn.execute("SELECT * FROM businesses WHERE id=?", (bid,)).fetchone()
+        conn.close()
+        if business is None:
+            return render_template("404.html"), 404
+        return render_template(
+            "client_portal_unavailable.html",
+            business=business,
+            reason=str(exc),
+        ), 503
+    conn.close()
+    return render_template("client_portal_preview.html", portal=portal, business=portal["business"])
+
+
+
+
+@app.route("/client/<int:bid>/acceptance")
+def client_acceptance_lab(bid):
+    """Operator-only local acceptance lab for the three-persona journey."""
+    conn = connect()
+    try:
+        state = acceptance_state(conn, bid)
+    except LookupError:
+        conn.close()
+        return render_template("404.html"), 404
+    conn.close()
+    return render_template("client_acceptance_lab.html", business=state["business"], lab=state)
+
+
+@app.route("/client/<int:bid>/delivery")
+def delivery_center(bid):
+    conn = connect()
+    business = conn.execute("SELECT * FROM businesses WHERE id=?", (bid,)).fetchone()
+    if business is None:
+        conn.close()
+        return render_template("404.html"), 404
+    try:
+        delivery = delivery_dashboard(conn, bid)
+    except (LookupError, ValueError) as exc:
+        conn.close()
+        flash(str(exc), "error")
+        return redirect(url_for("client_command_center", bid=bid))
+    conn.close()
+    return render_template("delivery_center.html", business=business, delivery=delivery)
+
+
+@app.route("/client/<int:bid>/delivery/release", methods=["POST"])
+def delivery_release(bid):
+    conn = connect()
+    try:
+        release = create_local_release(conn, bid)
+        flash(
+            f"Reviewed local release #{release['id']} created. Nothing was published externally.",
+            "success",
+        )
+    except (LookupError, ValueError) as exc:
+        flash(str(exc), "error")
+    finally:
+        conn.close()
+    return redirect(url_for("delivery_center", bid=bid))
+
+
+@app.route("/site/<slug>")
+def public_site(slug):
+    conn = connect()
+    release = active_release_by_slug(conn, slug)
+    if release is None:
+        conn.close()
+        return render_template("404.html"), 404
+    nonce = issue_form_nonce(conn, release["id"])
+    conn.close()
+    import secrets
+    return render_template(
+        "public_site.html",
+        site=release["artifact"],
+        slug=slug,
+        nonce=nonce,
+        idempotency_key=secrets.token_urlsafe(18),
+        form={},
+        errors=[],
+        submitted=False,
+        lead_id=None,
+    )
+
+
+@app.route("/site/<slug>/request", methods=["POST"])
+def public_site_request(slug):
+    conn = connect()
+    release = active_release_by_slug(conn, slug)
+    if release is None:
+        conn.close()
+        return render_template("404.html"), 404
+    values = {
+        "name": request.form.get("name", ""),
+        "phone": request.form.get("phone", ""),
+        "email": request.form.get("email", ""),
+        "address": request.form.get("address", ""),
+        "service": request.form.get("service", ""),
+        "preferred_time": request.form.get("preferred_time", ""),
+        "message": request.form.get("message", ""),
+        "company_website": request.form.get("company_website", ""),
+    }
+    try:
+        result = submit_public_intake(
+            conn,
+            slug=slug,
+            nonce=request.form.get("nonce", ""),
+            idempotency_key=request.form.get("idempotency_key", ""),
+            values=values,
+        )
+    except ValueError as exc:
+        # A consumed/expired nonce requires a clean form reload; do not reuse it.
+        nonce = issue_form_nonce(conn, release["id"])
+        conn.close()
+        import secrets
+        return render_template(
+            "public_site.html", site=release["artifact"], slug=slug, nonce=nonce,
+            idempotency_key=secrets.token_urlsafe(18), form=values,
+            errors=[str(exc)], submitted=False, lead_id=None,
+        ), 400
+
+    if result.get("status") == "REJECTED":
+        nonce = issue_form_nonce(conn, release["id"])
+        conn.close()
+        import secrets
+        return render_template(
+            "public_site.html", site=release["artifact"], slug=slug, nonce=nonce,
+            idempotency_key=secrets.token_urlsafe(18), form=values,
+            errors=result.get("errors") or ["Request could not be accepted."],
+            submitted=False, lead_id=None,
+        ), 400
+
+    conn.close()
+    return render_template(
+        "public_site.html", site=release["artifact"], slug=slug, nonce="",
+        idempotency_key="", form={}, errors=[], submitted=True,
+        lead_id=result.get("lead_id"),
+    )
 
 
 @app.route("/client/<int:bid>/website")
@@ -2498,18 +2770,24 @@ def create_system_snapshot():
 @app.route("/schedule")
 def schedule():
     conn = connect()
+    raw_business = request.args.get("business_id", "").strip()
+    business_id = int(raw_business) if raw_business.isdigit() else None
+    where = "WHERE appointments.business_id = ?" if business_id is not None else ""
+    args = (business_id,) if business_id is not None else ()
     rows = conn.execute(
-        """
-        SELECT appointments.*, leads.caller_name, leads.phone,
-               businesses.name AS business_name
+        f"""
+        SELECT appointments.*, leads.caller_name, leads.phone, businesses.name AS business_name
         FROM appointments
         LEFT JOIN leads ON leads.id = appointments.lead_id
         LEFT JOIN businesses ON businesses.id = appointments.business_id
+        {where}
         ORDER BY appointments.start_at ASC
-        """
+        """,
+        args,
     ).fetchall()
+    business = conn.execute("SELECT * FROM businesses WHERE id=?", (business_id,)).fetchone() if business_id is not None else None
     conn.close()
-    return render_template("schedule.html", schedule=appointment_state(rows))
+    return render_template("schedule.html", schedule=appointment_state(rows), business=business, business_id=business_id)
 
 
 @app.route("/automation")

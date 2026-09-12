@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Acceptance Lab · {{ business.name }}{% endblock %}
+{% block heading %}Acceptance Lab{% endblock %}
+{% block actions %}<a class="btn secondary" href="{{ url_for('client_operations', bid=business.id) }}">Back to client</a>{% endblock %}
+{% block content %}
+{% include "_client_workspace_nav.html" %}
+<section class="acceptance-hero panel v9-panel">
+  <div><span class="section-kicker">THREE-PERSONA WORKING MODEL</span><h2>Test Business OS the way real people will use it.</h2><p>Operator → owner → customer. Nothing here publishes externally or unlocks live provider actions.</p></div>
+  <div class="acceptance-state {{ 'ready' if lab.ready_for_full_journey else 'blocked' }}"><strong>{{ 'READY' if lab.ready_for_full_journey else 'SETUP' }}</strong><span>{{ lab.checks|selectattr('ok','equalto',true)|list|length }}/{{ lab.checks|length }} journey gates</span></div>
+</section>
+
+<section class="acceptance-grid">
+  <article class="panel v9-panel persona-card"><span class="persona-number">1</span><span class="section-kicker">OPERATOR</span><h3>Run the business workspace</h3><p>Manage the client, website, delivery state, leads and exceptions from your Business OS console.</p><div class="persona-actions"><a class="btn primary" href="{{ url_for('client_operations', bid=business.id) }}">Open operator view</a><a class="btn secondary" href="{{ url_for('website_studio', bid=business.id) }}">Website</a></div></article>
+  <article class="panel v9-panel persona-card"><span class="persona-number">2</span><span class="section-kicker">OWNER</span><h3>See only this company</h3><p>Preview what the business owner sees: activity, leads, calls, schedule, website and verified settings.</p><div class="persona-actions"><a class="btn primary" target="_blank" rel="noopener" href="{{ url_for('client_portal_preview', bid=business.id) }}">Open owner preview ↗</a></div></article>
+  <article class="panel v9-panel persona-card"><span class="persona-number">3</span><span class="section-kicker">CUSTOMER / LEAD</span><h3>Submit a real local test request</h3><p>Use the frozen customer website as a homeowner. The request should create one tenant-bound canonical lead.</p><div class="persona-actions">{% if lab.active_release %}<a class="btn primary" target="_blank" rel="noopener" href="{{ url_for('public_site', slug=lab.active_release.public_slug) }}">Open customer site ↗</a>{% else %}<a class="btn secondary" href="{{ url_for('delivery_center', bid=business.id) }}">Create local release</a>{% endif %}</div></article>
+</section>
+
+<section class="panel v9-panel">
+  <div class="v9-section-head"><div><span class="section-kicker">JOURNEY GATES</span><h3>What must be true before a customer test</h3></div></div>
+  <div class="acceptance-checks">{% for check in lab.checks %}<div class="{{ 'ok' if check.ok else 'blocked' }}"><span>{{ '✓' if check.ok else '!' }}</span><strong>{{ check.label }}</strong>{% if not check.ok %}<a href="{{ url_for('website_studio', bid=business.id) if check.next == 'website' else url_for('production_design_studio', bid=business.id) if check.next == 'design' else url_for('delivery_center', bid=business.id) }}">Fix this →</a>{% endif %}</div>{% endfor %}</div>
+</section>
+
+<section class="acceptance-grid two">
+  <article class="panel v9-panel"><div class="v9-section-head"><div><span class="section-kicker">LATEST PROOF</span><h3>Newest tenant-bound lead</h3></div></div>{% if lab.latest_lead %}<div class="acceptance-proof"><strong>#{{ lab.latest_lead.id }} · {{ lab.latest_lead.caller_name or 'New inquiry' }}</strong><span>{{ lab.latest_lead.service_type or 'General request' }} · {{ lab.latest_lead.status }}</span><small>{{ lab.latest_lead.source }} · {{ lab.latest_lead.created_at }}</small></div>{% else %}<div class="v9-empty"><strong>No leads yet.</strong><span>Use the customer persona to submit one.</span></div>{% endif %}</article>
+  <article class="panel v9-panel"><div class="v9-section-head"><div><span class="section-kicker">SAFETY</span><h3>Acceptance-mode locks</h3></div></div><div class="acceptance-locks"><span>External publishing: <b>LOCKED</b></span><span>Live SMS/calls: <b>LOCKED</b></span><span>Automatic scheduling: <b>LOCKED</b></span><span>Production owner auth: <b>NOT ENABLED</b></span></div></article>
+</section>
+{% endblock %}

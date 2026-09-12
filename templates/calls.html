@@ -13,7 +13,7 @@ Calls
 
 <a
     class="btn secondary"
-    href="{{ url_for('leads') }}"
+    href="{{ url_for('leads', business_id=business.id) if business else url_for('leads') }}"
 >
     View Leads
 </a>
@@ -22,6 +22,8 @@ Calls
 
 
 {% block content %}
+{% if business %}{% include "_client_workspace_nav.html" %}{% endif %}
+
 
 <div class="operations-hero">
 

@@ -639,6 +639,24 @@ def init_db():
     from services.v13_concepts import ensure_v13_schema
     ensure_v13_schema(con)
 
+    # ---- v14: production architecture foundation ----------------------
+    # Provider-independent provenance, usage, media and deployment history.
+    # This records state only; it does not unlock publishing or live actions.
+    from services.platform_foundation import ensure_platform_schema
+    ensure_platform_schema(con)
+
+    # ---- v14: founder sales operating system -------------------------
+    # Sales history, follow-ups and owner verification remain founder-
+    # controlled. Conversion enters ONBOARDING and does not activate.
+    from services.v14_sales_workspace import ensure_sales_schema
+    ensure_sales_schema(con)
+
+    # ---- v14: customer delivery loop --------------------------------
+    # Immutable local releases + safe website intake prove the customer
+    # journey without external publishing or provider actions.
+    from services.v14_delivery import ensure_delivery_schema
+    ensure_delivery_schema(con)
+
     con.commit()
     con.close()
 

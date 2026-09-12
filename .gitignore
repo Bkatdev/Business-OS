@@ -13,3 +13,5 @@ local_backups/
 .v13_backups/
 *.db-shm
 *.db-wal
+.v14_backups/
+v13.zip

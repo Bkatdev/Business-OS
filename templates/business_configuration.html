@@ -3,6 +3,7 @@
 {% block heading %}Business Configuration{% endblock %}
 {% block actions %}<a class="btn secondary" href="{{ url_for('client_operations', bid=business.id) }}">Client command center</a><a class="btn secondary" href="{{ url_for('website_studio', bid=business.id) }}">Website Studio</a><a class="btn" href="{{ url_for('client_onboarding', bid=business.id) }}">Business profile</a>{% endblock %}
 {% block content %}
+{% include "_client_workspace_nav.html" %}
 <div class="v9-client-hero compact">
   <div>
     <span class="section-kicker">SHARED BUSINESS TRUTH</span>

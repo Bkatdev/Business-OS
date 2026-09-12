@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Production Design · {{ business.name }}{% endblock %}
+{% block heading %}Production Design{% endblock %}
+{% block actions %}<a class="btn secondary" href="{{ url_for('website_studio',bid=business.id) }}">← Website Studio</a>{% if design %}<a class="btn" target="_blank" rel="noopener" href="{{ url_for('production_site_preview',bid=business.id) }}">Open Production Preview ↗</a>{% endif %}{% endblock %}
+{% block content %}
+{% include "_client_workspace_nav.html" %}
+<link rel="stylesheet" href="{{ url_for('static',filename='v14_production.css') }}?v=4">
+<section class="engine-hero"><div><span>SAFE CREATIVE DIRECTION</span><h2>Turn verified truth into a customer-ready site.</h2><p>Business facts stay locked. Creative direction controls the visual personality, hierarchy, and presentation.</p></div>{% if design %}<strong>{{ design.critic_score }}/100</strong>{% endif %}</section>
+<section class="engine-grid">
+  <article class="engine-card"><h3>1. Set the creative direction</h3><p>Describe the feeling you want customers to get. Focus on visual character, hierarchy, and brand personality—not facts that have not been verified.</p><form method="post" action="{{ url_for('production_site_generate',bid=business.id) }}"><textarea name="creative_brief" rows="7" maxlength="700" placeholder="Example: Premium local service company. Strong residential property identity. Confident typography, natural palette, editorial spacing, obvious estimate CTA. Avoid generic SaaS styling.">{{ design.creative_brief if design else '' }}</textarea><button class="btn" type="submit">Generate production design</button></form></article>
+  <article class="engine-card"><h3>2. Review the guardrails</h3><p>Business OS may change presentation, but it cannot invent business claims.</p><div class="tags"><b>Verified services only</b><b>No fake reviews</b><b>No invented pricing</b><b>No fake certifications</b><b>No arbitrary code</b></div>{% if design %}<h4>Current design</h4><div class="tags"><b>{{ design.blueprint.layout_family }}</b><b>{{ design.blueprint.palette }}</b><b>{{ design.blueprint.type_system }}</b><b>{{ design.blueprint.hero_layout }}</b></div>{% for n in design.critic %}<small>{{ n }}</small>{% endfor %}{% endif %}</article>
+</section>
+{% if design %}<section class="panel v9-panel section-gap"><div class="v9-section-head"><div><span class="section-kicker">NEXT STEP</span><h3>Review the actual customer experience.</h3><p>The production preview uses the same presentation layer as the frozen local customer release.</p></div><a class="btn" target="_blank" rel="noopener" href="{{ url_for('production_site_preview',bid=business.id) }}">Open Production Preview ↗</a></div></section>{% endif %}
+{% endblock %}
