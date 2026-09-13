@@ -4,12 +4,50 @@
 document.addEventListener("DOMContentLoaded", () => {
 
     setupSidebar();
+    setupGlobalSearch();
     setupClickableRows();
     setupLeadFilters();
     setupCallFilters();
 
 });
 
+
+
+function setupGlobalSearch() {
+    const toggle = document.querySelector("[data-global-search-toggle]");
+    const form = document.querySelector("[data-global-search]");
+    if (!toggle || !form) return;
+
+    const input = form.querySelector("input");
+
+    const close = () => {
+        form.hidden = true;
+        toggle.setAttribute("aria-expanded", "false");
+    };
+
+    toggle.addEventListener("click", () => {
+        const opening = form.hidden;
+        form.hidden = !opening;
+        toggle.setAttribute("aria-expanded", opening ? "true" : "false");
+        if (opening && input) requestAnimationFrame(() => input.focus());
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+            event.preventDefault();
+            form.hidden = false;
+            toggle.setAttribute("aria-expanded", "true");
+            if (input) input.focus();
+        }
+        if (event.key === "Escape") close();
+    });
+
+    document.addEventListener("click", (event) => {
+        if (form.hidden) return;
+        if (form.contains(event.target) || toggle.contains(event.target)) return;
+        close();
+    });
+}
 
 function setupSidebar() {
 
@@ -22,7 +60,7 @@ function setupSidebar() {
     }
 
     const storageKey =
-        "business-os-sidebar-collapsed";
+        "business-os-v15-shell-collapsed";
 
     const saved =
         localStorage.getItem(storageKey);

@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Website Studio · Business OS{% endblock %}
+{% block heading %}Website Studio{% endblock %}
+{% block content %}
+<section class="v15-home-hero v151-audit-hero"><div><span class="eyebrow">PRIVATE SALES ASSETS</span><h2>Turn a researched prospect into something they can see.</h2><p>Choose a business, build a private concept, and keep publishing locked until a real owner approves the work.</p></div></section>
+<section class="panel v9-panel section-gap"><div class="v9-section-head"><div><span class="section-kicker">PROSPECTS</span><h3>Website workspace queue</h3><p>Start with audited businesses where a visual improvement is easy to understand.</p></div><span class="count-bubble">{{ businesses|length }}</span></div>
+<div class="v13-concept-list">{% for business in businesses %}<article><div><span class="v13-concept-number">{{ business.category }}</span><strong>{{ business.name }}</strong><small>{{ business.city }} · {{ business.concept_count }} private concept{{ '' if business.concept_count == 1 else 's' }}</small></div><div class="v13-concept-actions"><a class="btn secondary" href="{{ url_for('business_detail', bid=business.id) }}">Research</a><a class="btn" href="{{ url_for('prospect_concept_workspace', bid=business.id) }}">Open Website Studio</a></div></article>{% else %}<div class="v9-empty large"><strong>No prospects yet.</strong><span>Add or discover prospects first.</span></div>{% endfor %}</div></section>
+{% endblock %}

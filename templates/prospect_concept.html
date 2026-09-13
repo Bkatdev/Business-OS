@@ -1,133 +1,36 @@
 {% extends "base.html" %}
-{% block title %}Website Concepts · {{ business.name }} · Business OS{% endblock %}
-{% block heading %}Prospect-to-Demo Studio{% endblock %}
-
-{% block actions %}
-<a class="btn secondary" href="{{ url_for('business_detail', bid=business.id) }}">← Prospect Intelligence</a>
-{% endblock %}
-
+{% block title %}Website Studio · {{ business.name }} · Business OS{% endblock %}
+{% block heading %}Website Studio{% endblock %}
+{% block actions %}<a class="btn secondary" href="{{ url_for('business_detail', bid=business.id) }}">← Prospect</a>{% endblock %}
 {% block content %}
-<div class="v13-workspace-hero">
-  <div>
-    <span class="section-kicker">PRIVATE SALES ASSET</span>
-    <h2>Build a website concept {{ business.name }} can actually react to.</h2>
-    <p>Public prospect facts stay fixed. Design direction can change dramatically.</p>
-  </div>
-  <div class="v13-truth-badge">
-    <strong>PUBLIC / UNVERIFIED</strong>
-    <span>Private concept only</span>
-  </div>
+<div class="studio-shell">
+  <section class="studio-hero">
+    <div><span class="section-kicker">{{ business.name }}</span><h2>Your website workspace.</h2><p>Research, direct, generate, review and reopen every private website from one place.</p></div>
+    <div class="studio-progress"><span class="done">Research ✓</span><span class="done">Knowledge ✓</span><span>Design</span><span>QA</span><span>Private Demo</span></div>
+  </section>
+
+  {% if current_demo %}
+  <section class="studio-current panel">
+    <div class="studio-current-copy"><span class="section-kicker">CURRENT WEBSITE</span><h3>Demo #{{ current_demo.id }} is ready to review.</h3><p>{{ current_demo.design_family|replace('_',' ')|title }} · {{ current_demo.created_at }} · Private / no publishing</p></div>
+    <div class="studio-current-actions"><a class="btn primary btn-large" href="{{ url_for('v16_private_demo', bid=business.id, demo_id=current_demo.id) }}" target="_blank" rel="noopener">Open Current Website ↗</a></div>
+  </section>
+  {% else %}
+  <section class="studio-empty panel"><span class="section-kicker">CURRENT WEBSITE</span><h3>No website generated yet.</h3><p>Create the first private website below.</p></section>
+  {% endif %}
+
+  <section class="studio-generator panel">
+    <div class="studio-section-head"><div><span class="section-kicker">AI DESIGNER</span><h3>Create a new website version</h3><p>Business OS automatically uses Website Intelligence, Business Knowledge, authentic assets, brand signals and Business OS design rules. Creative direction is optional.</p></div><span class="status-pill">Private · no publishing</span></div>
+    <form method="POST" action="{{ url_for('v19_design_website', bid=business.id) }}" class="studio-form">
+      <label><span>Optional creative direction</span><textarea name="creative_brief" maxlength="6000" rows="6" placeholder="Example: Established and rugged, photography-led, strong emergency path, less card-heavy, preserve the existing brand identity."></textarea></label>
+      <div class="studio-form-footer"><small>Design instructions cannot override evidence or create unsupported business claims. This is the only website-generation action on this page.</small><button class="btn primary btn-large" type="submit">Generate New Website →</button></div>
+    </form>
+  </section>
+
+  <section class="studio-history panel" id="website-history">
+    <div class="studio-section-head"><div><span class="section-kicker">WEBSITE HISTORY</span><h3>Private website versions</h3><p>Every generated website stays available here. The newest version is current.</p></div><span class="count-bubble">{{ demos|length }}</span></div>
+    {% if demos %}<div class="website-version-list">{% for demo in demos %}<article class="website-version {% if loop.first %}is-current{% endif %}"><div><span class="version-number">Demo #{{ demo.id }}{% if loop.first %} · Current{% endif %}</span><strong>{{ demo.design_family|replace('_',' ')|title }}</strong><small>{{ demo.created_at }} · {{ demo.truth_state|default('PUBLIC_UNVERIFIED')|replace('_',' ')|title }}</small></div><a class="btn {% if loop.first %}primary{% else %}secondary{% endif %}" href="{{ url_for('v16_private_demo', bid=business.id, demo_id=demo.id) }}" target="_blank" rel="noopener">Open Website ↗</a></article>{% endfor %}</div>{% else %}<div class="studio-empty-inline"><strong>No website versions yet.</strong><span>Generate one above and it will appear here automatically.</span></div>{% endif %}
+  </section>
+
+  <details class="studio-details panel"><summary>Sales evidence & owner discovery</summary><div class="studio-evidence-grid"><div><span class="section-kicker">DO NOT OVERCLAIM</span>{% for item in sales.cautions %}<div class="studio-note">{{ item }}</div>{% endfor %}<div class="studio-note">{{ sales.complete_plan_note }}</div></div><div><span class="section-kicker">DISCOVERY</span>{% for item in sales.discovery_questions %}<div class="studio-question"><span>{{ loop.index }}</span><p>{{ item }}</p></div>{% endfor %}</div></div></details>
 </div>
-
-<section class="panel v9-panel v13-create-panel">
-  <div class="v13-create-head">
-    <div>
-      <span class="section-kicker">CREATE CONCEPT</span>
-      <h3>Direct the Creative Director</h3>
-      <p>Describe the feeling, composition, audience, or what should change. Business OS turns that into validated design decisions without inventing business facts.</p>
-    </div>
-    <span class="v13-create-status">Publishing locked</span>
-  </div>
-
-  <form method="POST" action="{{ url_for('generate_prospect_concept', bid=business.id) }}" class="v13-concept-form">
-    <label>
-      <span>Creative direction</span>
-      <textarea name="creative_brief" maxlength="700" rows="5" placeholder="Example: Established tree company. Rugged and confident. Cinematic opening, earthy palette, strong typography, obvious phone path. Avoid a generic SaaS feel."></textarea>
-    </label>
-
-    <div class="v13-quick-directions" aria-label="Creative direction examples">
-      <span>Try:</span>
-      <code>premium editorial</code>
-      <code>rugged blue-collar</code>
-      <code>minimal and quiet</code>
-      <code>service-first</code>
-      <code>completely different direction</code>
-    </div>
-
-    <div class="v13-form-footer">
-      <small>Design can change layout, hierarchy, typography, palette, density and section treatment. Services, credentials, pricing, guarantees and outcomes remain off-limits unless verified.</small>
-      <button class="btn" type="submit">Generate New Concept</button>
-    </div>
-  </form>
-</section>
-
-<section class="panel v9-panel v13-sales-summary">
-  <div class="v13-sales-summary-head">
-    <div>
-      <span class="section-kicker">SALES BRIEF</span>
-      <h3>{{ sales.recommended_plan }} is the starting conversation</h3>
-      <p>{{ sales.plan_reason }}</p>
-    </div>
-    <a class="btn secondary" href="#concept-history">Jump to concepts ↓</a>
-  </div>
-
-  {% if sales.pitch_points %}
-  <div class="v13-mini-insights">
-    {% for item in sales.pitch_points[:3] %}
-    <p>{{ item }}</p>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="v9-empty">
-    <strong>No evidence-backed pitch angle yet.</strong>
-    <span>Audit before treating weaknesses as facts.</span>
-  </div>
-  {% endif %}
-</section>
-
-<section id="concept-history" class="panel v9-panel v13-history-panel">
-  <div class="v9-section-head">
-    <div>
-      <span class="section-kicker">CONCEPT HISTORY</span>
-      <h3>Private directions</h3>
-      <p>Every concept is immutable and tenant-bound. Generate alternatives freely; nothing here publishes automatically.</p>
-    </div>
-    <span class="count-bubble">{{ concepts|length }}</span>
-  </div>
-
-  {% if concepts %}
-  <div class="v13-concept-list">
-    {% for concept in concepts %}
-    <article>
-      <div>
-        <span class="v13-concept-number">Concept {{ concept.concept_number }}</span>
-        <strong>{{ concept.blueprint.layout_family|replace('_',' ')|title }} · {{ concept.blueprint.personality|replace('_',' ')|title }}</strong>
-        <small>{{ concept.blueprint.palette|title }} · {{ concept.blueprint.type_system|title }} · {{ concept.generation_mode|replace('_',' ')|title }}</small>
-        {% if concept.blueprint.design_rationale %}
-        <span class="v13-rationale">{{ concept.blueprint.design_rationale[0] }}</span>
-        {% endif %}
-      </div>
-      <div class="v13-concept-actions">
-        <span class="v12-chip">{{ concept.truth_state|replace('_',' ')|title }}</span>
-        <a class="btn secondary" href="{{ url_for('prospect_concept_preview', bid=business.id, concept_id=concept.id) }}" target="_blank" rel="noopener">Open Preview ↗</a>
-      </div>
-    </article>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="v9-empty large">
-    <strong>No concept yet.</strong>
-    <span>Generate the first private direction above.</span>
-  </div>
-  {% endif %}
-</section>
-
-<details class="panel v9-panel v13-evidence-details">
-  <summary>Sales evidence & owner discovery</summary>
-  <div class="v13-evidence-grid">
-    <div>
-      <span class="section-kicker">DO NOT OVERCLAIM</span>
-      {% for item in sales.cautions %}<div class="v13-caution">{{ item }}</div>{% endfor %}
-      <div class="v13-caution">{{ sales.complete_plan_note }}</div>
-    </div>
-    <div>
-      <span class="section-kicker">DISCOVERY</span>
-      <div class="v13-question-list">
-        {% for item in sales.discovery_questions %}
-        <div><span>{{ loop.index }}</span><p>{{ item }}</p></div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-</details>
 {% endblock %}

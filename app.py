@@ -75,6 +75,18 @@ from services.v14_production_site import generate_design as generate_production_
 from services.v14_client_portal import portal_view
 from services.v14_client_experience import client_workspace_state, owner_preview_state
 from services.v14_acceptance import acceptance_state
+from services.v15_site_intelligence import intelligence_view, run_site_intelligence
+from services.v16_website_engine import generate_v16_demo, get_v16_demo, list_v16_demos, ensure_v16_schema
+from services.v19_ai_website_agent import generate_ai_demo
+from services.v20_presentation import prepare_v20_site
+from services.v21_presentation import prepare_v21_site
+from services.v22_design_system import prepare_v22_site
+from services.v15_upgrade_engine import (
+    build_upgrade_blueprint,
+    ensure_upgrade_schema,
+    record_owner_verification,
+    upgrade_workspace_view,
+)
 from services.front_office_intelligence import (
     ensure_front_office_schema, lead_intelligence, link_lead_service,
     save_intake_answer, unified_timeline, build_front_office_queue,
@@ -423,6 +435,7 @@ def sales_workspace(bid):
     try:
         try:
             workspace = build_sales_workspace(conn, bid)
+            workspace["upgrade"] = upgrade_workspace_view(conn, bid)
         except LookupError:
             return render_template("404.html"), 404
     finally:
@@ -491,6 +504,20 @@ def sales_convert_to_client(bid):
     if ok:
         return redirect(url_for("business_configuration", bid=bid))
     return redirect(url_for("sales_workspace", bid=bid) + "#conversion")
+
+
+@app.route("/demo-studio")
+def demo_studio():
+    conn = connect()
+    ensure_v13_schema(conn)
+    rows = conn.execute("SELECT * FROM businesses ORDER BY id DESC").fetchall()
+    businesses = []
+    for row in rows:
+        item = dict(row)
+        item["concept_count"] = conn.execute("SELECT COUNT(*) FROM website_concepts WHERE business_id=?", (row["id"],)).fetchone()[0]
+        businesses.append(item)
+    conn.close()
+    return render_template("demo_studio.html", businesses=businesses)
 
 
 @app.route("/prospects")
@@ -722,6 +749,76 @@ def business_detail(bid):
     )
 
 
+@app.route("/business/<int:bid>/intelligence")
+def website_intelligence(bid):
+    conn = connect()
+    try:
+        view = intelligence_view(conn, bid)
+        view["upgrade"] = upgrade_workspace_view(conn, bid)
+    except LookupError:
+        return render_template("404.html"), 404
+    finally:
+        conn.close()
+    return render_template("v15_website_intelligence.html", view=view)
+
+
+@app.route("/business/<int:bid>/intelligence/run", methods=["POST"])
+def run_website_intelligence(bid):
+    conn = connect()
+    try:
+        run_site_intelligence(conn, bid)
+        flash("Website Intelligence captured a new evidence snapshot. Nothing was promoted into Business Truth.", "success")
+    except Exception as exc:
+        flash(f"Website Intelligence could not complete: {exc}", "error")
+    finally:
+        conn.close()
+    return redirect(url_for("website_intelligence", bid=bid))
+
+
+@app.route("/business/<int:bid>/upgrade/build", methods=["POST"])
+def build_website_upgrade_blueprint(bid):
+    conn = connect()
+    try:
+        try:
+            result = build_upgrade_blueprint(conn, bid)
+            counts = result["counts"]
+            flash(
+                "Upgrade Blueprint ready: "
+                f"keep {counts['KEEP']}, improve {counts['IMPROVE']}, "
+                f"add {counts['ADD']}, verify {counts['VERIFY']}.",
+                "success",
+            )
+        except (LookupError, ValueError) as exc:
+            flash(str(exc), "error")
+    finally:
+        conn.close()
+    return redirect(url_for("website_intelligence", bid=bid))
+
+
+@app.route("/business/<int:bid>/upgrade/verify", methods=["POST"])
+def verify_business_truth_claim(bid):
+    conn = connect()
+    try:
+        try:
+            result = record_owner_verification(
+                conn,
+                bid,
+                claim_key=request.form.get("claim_key", ""),
+                decision=request.form.get("decision", ""),
+                confirmed_value=request.form.get("confirmed_value", ""),
+                note=request.form.get("note", ""),
+            )
+            flash(
+                f"Owner answer recorded. Upgrade Blueprint v{result['blueprint']['version_number']} reflects it.",
+                "success",
+            )
+        except (LookupError, ValueError) as exc:
+            flash(str(exc), "error")
+    finally:
+        conn.close()
+    return redirect(url_for("website_intelligence", bid=bid) + "#business-truth")
+
+
 @app.route(
     "/business/<int:bid>/audit",
     methods=["POST"],
@@ -856,12 +953,16 @@ def prospect_concept_workspace(bid):
         return render_template("404.html"), 404
     sales = build_sales_brief(business)
     concepts = list_concepts(conn, bid)
+    demos = list_v16_demos(conn, bid, 20)
+    current_demo = demos[0] if demos else None
     conn.close()
     return render_template(
         "prospect_concept.html",
         business=dict(business),
         sales=sales,
         concepts=concepts,
+        demos=demos,
+        current_demo=current_demo,
     )
 
 
@@ -928,6 +1029,84 @@ def prospect_concept_preview(bid, concept_id):
             "Pragma": "no-cache",
         },
     )
+
+
+@app.route("/business/<int:bid>/v19/design", methods=["POST"])
+def v19_design_website(bid):
+    """Real model-backed Website Design Agent. No template fallback."""
+    conn = connect()
+    try:
+        creative_brief = request.form.get("creative_brief", "").strip()
+        demo = generate_ai_demo(conn, bid, refresh_intelligence=True, creative_brief=creative_brief)
+        flash(f"Website #{demo['id']} is ready for review.", "success")
+        return redirect(url_for("v16_private_demo", bid=bid, demo_id=demo["id"]))
+    except Exception as exc:
+        flash(f"AI Website Design Agent stopped safely: {exc}", "error")
+        return redirect(url_for("prospect_concept_workspace", bid=bid))
+    finally:
+        conn.close()
+
+
+@app.route("/business/<int:bid>/v16/design", methods=["POST"])
+def v16_design_website(bid):
+    """One-click v16 path: refresh evidence when possible, then build a private tenant-bound demo."""
+    conn = connect()
+    try:
+        demo = generate_v16_demo(conn, bid, refresh_intelligence=True)
+        flash(f"v16 private website demo #{demo['id']} is ready.", "success")
+        return redirect(url_for("v16_private_demo", bid=bid, demo_id=demo["id"]))
+    except Exception as exc:
+        flash(f"v16 website generation failed safely: {exc}", "error")
+        return redirect(url_for("prospect_concept_workspace", bid=bid))
+    finally:
+        conn.close()
+
+
+@app.route("/business/<int:bid>/v16/demo/<int:demo_id>")
+def v16_private_demo(bid, demo_id):
+    conn = connect()
+    business = conn.execute("SELECT * FROM businesses WHERE id=?", (bid,)).fetchone()
+    demo = get_v16_demo(conn, bid, demo_id)
+    if business is None or demo is None:
+        conn.close()
+        return render_template("404.html"), 404
+    is_ai_demo = demo.get("design_family") in {"AI_AGENT_V19", "AI_AGENT_V20", "AI_AGENT_V21", "AI_AGENT_V22"} or demo["site"].get("engine_version") in {"19.0", "20.0", "21.0", "22.0"}
+    template = "v19_ai_demo.html" if is_ai_demo else "v16_private_demo.html"
+    render_site = prepare_v22_site(conn, bid, demo_id, demo["site"]) if is_ai_demo else demo["site"]
+    conn.close()
+    return Response(render_template(template, business=dict(business), demo=demo, s=render_site, submitted=request.args.get("submitted")), headers={"X-Robots-Tag":"noindex, nofollow, noarchive","Cache-Control":"private, no-store, max-age=0"})
+
+
+@app.route("/business/<int:bid>/v16/demo/<int:demo_id>/lead", methods=["POST"])
+def v16_demo_lead(bid, demo_id):
+    conn = connect()
+    demo = get_v16_demo(conn, bid, demo_id)
+    if demo is None:
+        conn.close(); return render_template("404.html"), 404
+    name = request.form.get("name", "").strip()[:200]
+    phone = request.form.get("phone", "").strip()[:80]
+    email = request.form.get("email", "").strip()[:254]
+    service = request.form.get("service", "").strip()[:200]
+    address = request.form.get("address", "").strip()[:300]
+    message = request.form.get("message", "").strip()[:2000]
+    property_type = request.form.get("property_type", "").strip()[:80]
+    allowed = {x.get("name") for x in demo["site"].get("services", []) if isinstance(x, dict)}
+    allowed.update(demo["site"].get("form", {}).get("service_options", []))
+    if not name or not phone or not message or service not in allowed:
+        conn.close(); flash("Please complete the required estimate fields.", "error")
+        return redirect(url_for("v16_private_demo", bid=bid, demo_id=demo_id) + "#estimate")
+    ts = now_iso()
+    urgent = any(x in (service + " " + message).lower() for x in ("emergency", "storm", "fallen", "danger", "urgent"))
+    cur = conn.execute("""INSERT INTO leads(business_id,caller_name,phone,address,service_type,issue_description,lead_type,priority,safety_flag,preferred_time,appointment_status,status,source,retell_call_id,created_at,updated_at)
+        VALUES (?,?,?,?,?,?,'New Lead',?,?,'','Not Scheduled','New','Website','',?,?)""",
+        (bid,name,phone,address,service,message,"Urgent" if urgent else "Normal","Urgent website inquiry" if urgent else "",ts,ts))
+    lead_id = cur.lastrowid
+    note = "v16 private demo intake"
+    if email: note += f" · Email: {email}"
+    if property_type: note += f" · Property: {property_type}"
+    conn.execute("INSERT INTO lead_notes(lead_id,note,created_at) VALUES (?,?,?)", (lead_id,note,ts))
+    conn.commit(); conn.close()
+    return redirect(url_for("v16_private_demo", bid=bid, demo_id=demo_id, submitted=lead_id) + "#estimate")
 
 
 @app.route("/audits")
@@ -3329,6 +3508,7 @@ if __name__ == "__main__":
     ensure_control_plane_schema(conn)
     ensure_execution_schema(conn)
     ensure_v13_schema(conn)
+    ensure_upgrade_schema(conn)
     conn.close()
     print(f"Business OS {VERSION} · {RELEASE_NAME} · {BUILD_ID}")
     print(f"Project root: {os.path.dirname(os.path.abspath(__file__))}")
@@ -3339,6 +3519,13 @@ if __name__ == "__main__":
         print(f"Business OS backup warning: {exc}")
 
     debug_mode = os.getenv("BUSINESS_OS_DEBUG", "0").strip().lower() in {"1", "true", "yes", "on"}
+    try:
+        local_port = int(os.getenv("BUSINESS_OS_PORT", "5000"))
+    except ValueError:
+        local_port = 5000
+    if not 1 <= local_port <= 65535:
+        local_port = 5000
     app.run(
-        debug=debug_mode
+        debug=debug_mode,
+        port=local_port,
     )

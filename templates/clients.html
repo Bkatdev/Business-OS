@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Clients · Business OS{% endblock %}
 {% block heading %}Clients{% endblock %}
+{% block actions %}<a class="btn secondary" href="{{ url_for('leads') }}">All leads</a>{% endblock %}
 {% block content %}
-<div class="section-heading"><div><span class="section-kicker">ACTIVE ACCOUNTS</span><h2>Client Operations</h2></div></div>
+<section class="v151-page-intro"><div><span class="section-kicker">CLIENT WORKSPACE</span><h2>Businesses you operate.</h2><p>Open a client to manage its website, leads, communications, onboarding, and owner experience from one place.</p></div><div class="v151-summary"><strong>{{ businesses|length }}</strong><span>active client account{{ '' if businesses|length == 1 else 's' }}</span></div></section>
 {% if businesses %}
 <div class="client-grid">
 {% for business in businesses %}

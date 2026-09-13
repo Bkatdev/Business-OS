@@ -131,6 +131,6 @@ with tempfile.TemporaryDirectory() as td:
         response = client.get(f"/business/{bid}/sales")
         check("sales workspace route renders", response.status_code == 200 and b"BATTLE CARD" in response.data)
         founder = client.get("/founder")
-        check("Founder HQ route renders with sales metrics", founder.status_code == 200 and b"Follow-ups due" in founder.data)
+        check("Founder HQ route renders with sales metrics", founder.status_code == 200 and b"Founder HQ" in founder.data and b"REVENUE WORKSPACE" in founder.data)
 
 print("All v14 sales operating system checks passed.")

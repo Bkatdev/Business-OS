@@ -657,6 +657,17 @@ def init_db():
     from services.v14_delivery import ensure_delivery_schema
     ensure_delivery_schema(con)
 
+    # ---- v15: website intelligence evidence foundation ----------------
+    # Public-site observations remain evidence, not canonical Business Truth.
+    from services.v15_site_intelligence import ensure_intelligence_schema
+    ensure_intelligence_schema(con)
+
+    # ---- v15: truth resolution + evidence-backed upgrade planning ------
+    # Blueprint generation is internal planning only. It never promotes
+    # public observations into production truth or unlocks provider actions.
+    from services.v15_upgrade_engine import ensure_upgrade_schema
+    ensure_upgrade_schema(con)
+
     con.commit()
     con.close()
 

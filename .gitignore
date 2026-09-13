@@ -15,3 +15,6 @@ local_backups/
 *.db-wal
 .v14_backups/
 v13.zip
+
+# Generated local visual-QA reports
+qa/

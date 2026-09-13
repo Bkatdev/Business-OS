@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Upgrade Blueprint · {{ view.business.name }}{% endblock %}
+{% block heading %}Website Intelligence{% endblock %}
+
+{% block actions %}
+  {% if not view.run %}
+    <form method="post" action="{{ url_for('run_website_intelligence', bid=view.business.id) }}">
+      <button class="btn primary" type="submit">Analyze current website</button>
+    </form>
+  {% elif view.run.status == 'COMPLETED' and (not view.upgrade.blueprint or view.upgrade.stale) %}
+    <form method="post" action="{{ url_for('build_website_upgrade_blueprint', bid=view.business.id) }}">
+      <button class="btn primary" type="submit">{% if view.upgrade.blueprint %}Refresh{% else %}Build{% endif %} Upgrade Blueprint</button>
+    </form>
+  {% else %}
+    <form method="post" action="{{ url_for('run_website_intelligence', bid=view.business.id) }}">
+      <button class="btn secondary" type="submit">Refresh evidence</button>
+    </form>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+{% set upgrade = view.upgrade %}
+<div class="v15-intel-shell">
+  <div class="v15-context-row">
+    <a href="{{ url_for('business_detail', bid=view.business.id) }}">← {{ view.business.name }}</a>
+    <div>
+      <a href="{{ url_for('sales_workspace', bid=view.business.id) }}">Sales workspace</a>
+      {% if upgrade.business.safe_website_url %}<a href="{{ upgrade.business.safe_website_url }}" target="_blank" rel="noopener">Current website ↗</a>{% endif %}
+    </div>
+  </div>
+
+  <section class="v15-intel-hero v15-blueprint-hero">
+    <div>
+      <span class="v15-kicker">WEBSITE INTELLIGENCE + UPGRADE BLUEPRINT</span>
+      {% if upgrade.blueprint %}
+        <h2>Keep what works. Fix what creates friction.</h2>
+        <p>Business OS separated public evidence from Business Truth, judged each capability against this business model, and reduced the result to a focused upgrade plan.</p>
+      {% else %}
+        <h2>Understand what exists before deciding what to replace.</h2>
+        <p>Business OS inventories the public customer journey first. It does not invent weaknesses, promote research into production truth, or assume every business needs the same features.</p>
+      {% endif %}
+      <div class="v15-truth-rule"><b>Evidence is not permission.</b><span>Nothing here changes the website, production truth, or a live provider.</span></div>
+    </div>
+    <div class="v15-intel-target">
+      <small>PROSPECT</small>
+      <strong>{{ view.business.name }}</strong>
+      <span>{{ view.business.category }}{% if view.business.city %} · {{ view.business.city }}{% endif %}</span>
+      {% if upgrade.blueprint %}<em>Blueprint v{{ upgrade.blueprint.version_number }} · {{ upgrade.blueprint.industry_profile.replace('_',' ')|title }}</em>{% endif %}
+    </div>
+  </section>
+
+  {% if not view.run %}
+    <section class="v15-empty-intel">
+      <span>01</span>
+      <div><small>NO EVIDENCE SNAPSHOT</small><h3>Analyze the current site before proposing an upgrade.</h3><p>The crawler is bounded, same-site, GET-only, and never submits a form.</p></div>
+    </section>
+  {% else %}
+    <section class="v15-intel-stats v15-evidence-stats">
+      <article><small>RUN</small><strong>#{{ view.run.id }}</strong><span>{{ view.run.status }}</span></article>
+      <article><small>PAGES</small><strong>{{ view.run.pages_analyzed }}</strong><span>inspected</span></article>
+      <article><small>EVIDENCE</small><strong>{{ view.run.evidence_count }}</strong><span>traceable observations</span></article>
+      <article><small>MEDIA</small><strong>{{ view.run.asset_count }}</strong><span>reference only</span></article>
+    </section>
+
+    {% if view.run.status == 'FAILED' %}
+      <section class="panel v15-intel-warning"><span>ANALYSIS BLOCKED</span><h3>{{ view.run.error_code }}</h3><p>{{ view.run.error_detail }}</p></section>
+    {% endif %}
+
+    {% if view.run.status == 'COMPLETED' and not upgrade.blueprint %}
+      <section class="v15-next-stage">
+        <div><small>02 · INTERPRETATION</small><h3>The evidence is ready. Build the decision.</h3><p>The next pass resolves claims, applies industry relevance, and produces KEEP / IMPROVE / ADD / VERIFY / IGNORE without creating a fake website score.</p></div>
+        <form method="post" action="{{ url_for('build_website_upgrade_blueprint', bid=view.business.id) }}"><button class="btn primary" type="submit">Build Upgrade Blueprint</button></form>
+      </section>
+    {% else %}
+      {% if upgrade.stale %}
+        <section class="v15-stale-banner"><div><strong>New evidence or an owner answer is waiting.</strong><span>Refresh the blueprint so the decision matches the latest facts.</span></div><form method="post" action="{{ url_for('build_website_upgrade_blueprint', bid=view.business.id) }}"><button class="btn primary" type="submit">Refresh Blueprint</button></form></section>
+      {% endif %}
+
+      <section class="v15-blueprint-summary">
+        <div class="v15-decision-copy">
+          <span class="v15-kicker">THE DECISION</span>
+          {% if upgrade.top_recommendation %}
+            <h3>{{ upgrade.top_recommendation.title }}</h3>
+            <p>{{ upgrade.top_recommendation.why_it_matters }}</p>
+            <div class="v15-decision-proof"><b>{{ upgrade.top_recommendation.priority_band }} PRIORITY</b><span>{{ upgrade.top_recommendation.expected_benefit }}</span></div>
+          {% else %}
+            <h3>Preserve the current customer journey.</h3>
+            <p>No evidence-backed addition or improvement outranked the existing experience.</p>
+          {% endif %}
+        </div>
+        <div class="v15-action-counts" aria-label="Upgrade Blueprint counts">
+          {% for action in ['KEEP','IMPROVE','ADD','VERIFY','IGNORE'] %}
+            <article class="action-{{ action|lower }}"><span>{{ action }}</span><strong>{{ upgrade.counts[action] }}</strong></article>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="v15-blueprint-board">
+        {% for action in ['KEEP','IMPROVE','ADD','VERIFY','IGNORE'] %}
+          <div class="v15-blueprint-group action-{{ action|lower }}">
+            <header><div><span>{{ '%02d'|format(loop.index) }}</span><h3>{{ action }}</h3></div><b>{{ upgrade.items[action]|length }}</b></header>
+            <div class="v15-blueprint-items">
+              {% for item in upgrade.items[action] %}
+                <article>
+                  <div class="v15-item-title"><strong>{{ item.title }}</strong><span>{{ item.priority_band }} · {{ item.complexity }} effort</span></div>
+                  <p>{{ item.evidence_summary }}</p>
+                  <dl><div><dt>Why</dt><dd>{{ item.why_it_matters }}</dd></div><div><dt>Benefit</dt><dd>{{ item.expected_benefit }}</dd></div></dl>
+                  <footer><span>{{ item.confidence }} confidence{% if item.owner_verification_required %} · owner answer required{% endif %}</span>{% if item.source_url %}<a href="{{ item.source_url }}" target="_blank" rel="noopener">Evidence source ↗</a>{% endif %}</footer>
+                </article>
+              {% else %}
+                <div class="v15-group-empty">Nothing belongs here in this version.</div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endfor %}
+      </section>
+
+      <section id="business-truth" class="v15-truth-workspace">
+        <div class="v15-truth-intro">
+          <span class="v15-kicker">BUSINESS TRUTH</span>
+          <h3>Public evidence stays separate until the owner answers.</h3>
+          <p>{{ upgrade.verification_queue|length }} claim(s) still need verification. Recording an answer creates a new immutable blueprint version; it never edits the original crawl.</p>
+        </div>
+        <div class="v15-truth-list">
+          {% for claim in upgrade.claims %}
+            <article class="truth-{{ claim.truth_state|lower }}">
+              <div class="v15-truth-state"><span>{{ claim.truth_state.replace('_',' ') }}</span><b>{{ claim.confidence }}</b></div>
+              <div class="v15-truth-value"><small>{{ claim.display_name }}</small><strong>{{ claim.display_value or 'Unknown' }}</strong><p>{{ claim.conflict_detail or claim.rationale }}</p>{% if claim.source_urls %}<a href="{{ claim.source_urls[0] }}" target="_blank" rel="noopener">View source ↗</a>{% endif %}</div>
+              {% if claim.requires_owner_verification %}
+                <details class="v15-verify-control">
+                  <summary>Record owner answer</summary>
+                  <form method="post" action="{{ url_for('verify_business_truth_claim', bid=view.business.id) }}">
+                    <input type="hidden" name="claim_key" value="{{ claim.claim_key }}">
+                    <label>Owner-confirmed value<input name="confirmed_value" maxlength="800" value="{% if claim.truth_state != 'CONFLICT' %}{{ claim.display_value }}{% endif %}" placeholder="Enter exactly what the owner confirmed"></label>
+                    <label>Optional note<input name="note" maxlength="500" placeholder="How or when it was confirmed"></label>
+                    <div><button class="btn primary" type="submit" name="decision" value="CONFIRMED">Confirm value</button><button class="btn secondary" type="submit" name="decision" value="REJECTED">Owner rejected it</button></div>
+                  </form>
+                </details>
+              {% else %}
+                <div class="v15-truth-locked">Owner-confirmed</div>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+
+      <details class="panel v15-capability-disclosure">
+        <summary><div><span class="v15-kicker">FULL CAPABILITY MODEL</span><h3>Why each feature was kept, added, verified, or ignored</h3></div><b>{{ upgrade.gaps|length }} assessed</b></summary>
+        <div class="v15-gap-table">
+          <div class="v15-gap-head"><span>Capability</span><span>Observed</span><span>Relevant</span><span>Decision</span></div>
+          {% for gap in upgrade.gaps %}
+            <article><strong>{{ gap.label }}</strong><span>{{ gap.observed_state.replace('_',' ') }}</span><span>{{ gap.relevance.replace('_',' ') }}</span><b class="gap-{{ gap.gap_state|lower }}">{{ gap.gap_state.replace('_',' ') }}</b></article>
+          {% endfor %}
+        </div>
+      </details>
+    {% endif %}
+
+    <details class="panel v15-evidence-disclosure">
+      <summary><div><span class="v15-kicker">RAW EVIDENCE</span><h3>Inspect the source material</h3></div><b>{{ view.evidence|length }} captured</b></summary>
+      <div class="v15-intel-grid evidence-grid">
+        <div class="v15-evidence-list">{% for ev in view.evidence[:50] %}<article><span>{{ ev.evidence_type.replace('_',' ') }}</span><div><strong>{{ ev.normalized_value or ev.excerpt }}</strong><small>{{ ev.page_url }}</small></div><b>{{ ev.confidence }}</b></article>{% else %}<p class="muted">No evidence recorded.</p>{% endfor %}</div>
+        <div>
+          <div class="v15-section-head"><div><span>PAGE INVENTORY</span><h3>What Business OS inspected</h3></div><small>{{ view.pages|length }} page(s)</small></div>
+          <div class="v15-page-list">{% for page in view.pages %}<article><div><strong>{{ page.title or page.primary_heading or 'Untitled page' }}</strong><a href="{{ page.url }}" target="_blank" rel="noopener">{{ page.url }}</a></div><span>{{ page.word_count }} words</span></article>{% else %}<p class="muted">No pages recorded.</p>{% endfor %}</div>
+        </div>
+      </div>
+      <div class="v15-reference-gallery">
+        <div class="v15-section-head"><div><span>DISCOVERED MEDIA</span><h3>Reference gallery</h3></div><small>Rights unverified</small></div>
+        <div class="v15-asset-list">{% for asset in view.assets[:18] %}<article><div class="v15-asset-thumb"><img src="{{ asset.asset_url }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'"></div><div><strong>{{ asset.alt_text or asset.asset_type }}</strong><span>{{ asset.rights_status.replace('_',' ') }}</span><small title="{{ asset.asset_url }}">{{ asset.asset_url }}</small></div></article>{% else %}<p class="muted">No image references recorded.</p>{% endfor %}</div>
+      </div>
+    </details>
+  {% endif %}
+</div>
+{% endblock %}

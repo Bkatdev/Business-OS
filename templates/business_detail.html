@@ -32,6 +32,13 @@ Prospect Intelligence
   Sales Workspace
 </a>
 
+<a
+  class="btn secondary"
+  href="{{ url_for('website_intelligence', bid=business.id) }}"
+>
+  Website Intelligence v15
+</a>
+
 <form
   method="post"
   action="{{ url_for('audit_one', bid=business.id) }}"

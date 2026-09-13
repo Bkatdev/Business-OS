@@ -1,0 +1,20 @@
+BUSINESS OS V15 BLOCK 2 - VISUAL ACCEPTANCE CORRECTION
+=======================================================
+
+1. Extract this ZIP into:
+   C:\Users\benka\Projects\Business-OS
+
+   Allow it to add the two files inside the scripts folder.
+
+2. Open PowerShell in that Business-OS folder and run:
+
+   python scripts\install_v15_block2.py
+
+The installer verifies the installed v15 Block 2 starting point, tests an isolated
+candidate, creates an external rollback backup, applies exact files, runs the
+full regression suite, corrects Website Intelligence presentation, and reruns
+stable GET-only visual QA on local port 5015.
+It prints the path of a ready-to-upload QA ZIP when finished.
+
+It does not commit, tag, publish, send SMS, place calls, schedule appointments,
+or contact customers.

@@ -11,7 +11,7 @@ from services.db import connect
 
 
 REQUEST_TIMEOUT = 18
-MAX_EXTRA_PAGES = 4
+MAX_EXTRA_PAGES = 10
 
 
 HEADERS = {
@@ -272,7 +272,7 @@ def form_has_contact_fields(form):
     return matches >= 2
 
 
-def detect_estimate_form(soup):
+def detect_estimate_form(soup, page_text=""):
     evidence = []
 
     for form in soup.find_all("form"):
@@ -287,8 +287,9 @@ def detect_estimate_form(soup):
             ]
         )
 
+        page_estimate_context = any(term in page_text for term in ESTIMATE_OFFER_TERMS)
         if (
-            estimate_language
+            (estimate_language or page_estimate_context)
             and form_has_contact_fields(form)
         ):
             evidence.append(
@@ -444,6 +445,14 @@ def find_relevant_links(
                     absolute_url
                 )
 
+    def priority(u):
+        low = u.lower()
+        order = ("estimate", "quote", "contact", "book", "schedule", "appointment", "emergency", "service", "about")
+        for i, term in enumerate(order):
+            if term in low:
+                return i
+        return len(order)
+    links.sort(key=priority)
     return links[:MAX_EXTRA_PAGES]
 
 
@@ -479,7 +488,7 @@ def analyze_page(
         estimate_form,
         estimate_form_evidence,
     ) = detect_estimate_form(
-        soup
+        soup, visible_text
     )
 
     (

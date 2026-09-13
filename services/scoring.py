@@ -86,13 +86,9 @@ def opportunity_analysis(business):
         _value(business, "estimate_form", 0)
     )
 
-    # No real online booking detected
-    if not online_booking:
-        score += 25
-        reasons.append(
-            ("No actual online booking detected", 25)
-        )
-
+    # Booking is descriptive evidence, not an automatic weakness.
+    # A static crawl that does not detect booking cannot prove it is absent,
+    # and many service businesses do not need instant online booking.
     # Emergency/high-intent service is valuable because missed
     # calls or slow responses can represent valuable jobs.
     if emergency_service:
@@ -101,20 +97,10 @@ def opportunity_analysis(business):
             ("Emergency / high-intent service detected", 20)
         )
 
-    # No website chat detected
-    if not website_chat:
-        score += 15
-        reasons.append(
-            ("No website chat detected", 15)
-        )
-
-    # No actual estimate/request form detected
-    if not estimate_form:
-        score += 20
-        reasons.append(
-            ("No online estimate form detected", 20)
-        )
-
+    # Chat is descriptive evidence, not an automatic weakness.
+    # NOT_DETECTED / False does not earn opportunity points.
+    # Estimate-form absence is not scored from a negative crawl observation.
+    # Only positive, evidence-backed signals contribute to this legacy score.
     # ---------------------------------------------------------
     # OPPORTUNITY LEVEL
     # ---------------------------------------------------------

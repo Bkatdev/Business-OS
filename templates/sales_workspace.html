@@ -24,6 +24,33 @@
   </div>
 </section>
 
+{% set upgrade = ws.upgrade %}
+<section class="panel v15-sales-upgrade">
+  {% if upgrade.blueprint %}
+    <div>
+      <span class="section-kicker">EVIDENCE-BACKED SALES DECISION</span>
+      {% if upgrade.top_recommendation %}
+        <h3>{{ upgrade.top_recommendation.title }}</h3>
+        <p>{{ upgrade.top_recommendation.why_it_matters }} {{ upgrade.top_recommendation.expected_benefit }}</p>
+      {% else %}
+        <h3>Preserve what already works.</h3>
+        <p>The current evidence does not justify forcing a new capability into the customer journey.</p>
+      {% endif %}
+      <a href="{{ url_for('website_intelligence', bid=ws.business.id) }}">Open the full Upgrade Blueprint →</a>
+    </div>
+    <div class="v15-sales-upgrade-summary">
+      {% for action in ['KEEP','IMPROVE','ADD','VERIFY'] %}<div><span>{{ action }}</span><strong>{{ upgrade.counts[action] }}</strong></div>{% endfor %}
+    </div>
+  {% else %}
+    <div>
+      <span class="section-kicker">UPGRADE BLUEPRINT</span>
+      <h3>Lead with evidence, not a generic redesign pitch.</h3>
+      <p>{% if upgrade.run %}The website evidence is ready to turn into a focused upgrade decision.{% else %}Analyze the current website to learn what should be preserved, improved, or added.{% endif %}</p>
+      <a href="{{ url_for('website_intelligence', bid=ws.business.id) }}">{% if upgrade.run %}Build the Upgrade Blueprint{% else %}Start Website Intelligence{% endif %} →</a>
+    </div>
+  {% endif %}
+</section>
+
 <section class="v14-sales-grid">
   <article class="panel v9-panel v14-battle-card">
     <div class="v9-section-head">
